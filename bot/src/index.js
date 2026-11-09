@@ -134,6 +134,23 @@ export default {
       try { await onUpdate(env, await req.json()); } catch (e) { console.log("update error", e); }
       return new Response("ok");
     }
+    if (url.pathname === "/zones") {
+      // Территории для захвата с карты d9-rp.com: сайт не отдаёт CORS, поэтому проксируем и кэшируем на минуту.
+      const cors = {"Access-Control-Allow-Origin": "*", "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=60"};
+      const cache = caches.default, key = new Request(url.origin + "/zones");
+      const hit = await cache.match(key);
+      if (hit) return hit;
+      try {
+        const r = await fetch("https://d9-rp.com/api/wiki/map-markers", {headers: {"User-Agent": "D9-guide-bot"}});
+        const d = await r.json();
+        const body = JSON.stringify({captureZones: d.captureZones || [], familyFields: d.familyFields || [], at: Date.now()});
+        const resp = new Response(body, {headers: cors});
+        await cache.put(key, resp.clone());
+        return resp;
+      } catch (e) {
+        return new Response(JSON.stringify({captureZones: [], error: "upstream"}), {status: 502, headers: cors});
+      }
+    }
     if (url.pathname === "/setup") {
       const hook = await tg(env, "setWebhook", {url: `${url.origin}/tg`, secret_token: await hookSecret(env), allowed_updates: ["message", "callback_query"], drop_pending_updates: true});
       const cmds = await tg(env, "setMyCommands", {commands: [

@@ -191,6 +191,18 @@ input[type=checkbox]{accent-color:var(--rust)}
 .lore .cb p{margin:0;font-size:13px;color:var(--fg)}
 .tools-row{display:flex;gap:8px}
 .tools-row select,.tools-row input{flex:1;min-width:0;background:var(--bg3);border:1px solid var(--line);border-radius:10px;padding:9px 10px;color:var(--fg);font-size:14px}
+
+/* ===================== МАРКЕРЫ КАРТЫ ===================== */
+.mk{width:100%;height:100%;border-radius:50%;background:var(--c);display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1;color:#fff;
+  border:2px solid rgba(255,255,255,.85);box-shadow:0 0 0 1px #000,0 2px 6px rgba(0,0,0,.7)}
+.mk.big{font-size:15px;border-width:3px}
+.far .mk{transform:scale(.62)}.far .mk.big{transform:scale(.8)}
+.mk{transition:transform .15s}
+.mk.sm{display:inline-flex;width:18px;height:18px;font-size:10px;font-style:normal;border-width:1px}
+.leaflet-tooltip.zl{display:none;background:rgba(10,12,10,.85);color:#e7e4d6;border:1px solid #2b332b;border-radius:4px;padding:1px 5px;font:600 11px/1.3 var(--font);box-shadow:none;white-space:nowrap}
+.leaflet-tooltip.zl::before{display:none}
+.leaflet-tooltip.zarea{background:transparent;border:0;color:#fff;text-shadow:0 1px 2px #000,0 0 4px #000;font-weight:700}
+.lv1 .leaflet-tooltip.zl1,.lv2 .leaflet-tooltip.zl2,.lv3 .leaflet-tooltip.zl3{display:block}
 </style>
 </head>
 <body>
@@ -217,7 +229,7 @@ input[type=checkbox]{accent-color:var(--rust)}
 
 <!-- ======================= КАРТА ======================= -->
 <section id="v-map" class="wrap" hidden>
-  <div><h1>Карта</h1><p class="sub">Поселения и магазины — с карты сервера. Скупщиков в игре видно на карте по жёлтому значку $ — отмечай их здесь, чтобы помнить, кто что берёт.</p></div>
+  <div><h1>Карта</h1><p class="sub">Поселения и магазины — с карты сервера. Скупщики, больницы, базы фракций, работы, клады и радиация — по данным карты сервера. Приблизь, чтобы увидеть подписи.</p></div>
   <div class="chips">
     <button class="chip" id="m-add" aria-pressed="false">＋ Метка</button>
     <button class="chip" data-place="hill">Холм спасения</button>
@@ -227,15 +239,12 @@ input[type=checkbox]{accent-color:var(--rust)}
   <p class="note" id="m-hint" style="margin:0"></p>
   <div id="map" class="mapbox"></div>
   <div class="legend" id="map-legend">
-    <span><i class="pin" style="background:#7a5bc7;display:inline-block"></i>Холм спасения</span>
-    <span><i class="pin" style="background:#b4561f;display:inline-block"></i>Бастион Занкудо</span>
-    <span><i class="pin" style="background:#3a7bd5;display:inline-block"></i>Город</span>
-    <span><i class="pin" style="background:#e13b3b;display:inline-block"></i>Ammu-Nation / Форт Занкудо</span>
-    <span><i class="pin" style="background:#79ce79;display:inline-block"></i>24/7 · тюрьма</span>
-    <span><i class="pin" style="background:#65b9e7;display:inline-block"></i>Судовой магазин · Human Labs</span>
-    <span><i class="pin" style="background:#f0ca57;display:inline-block"></i>Золото · автосалон</span>
-    <span><i class="pin" style="background:#a174b3;display:inline-block"></i>Магазин масок</span>
-    <span>Нажми на точку — будет подпись. Слои — кнопка справа сверху.</span>
+    <span><i class="mk sm" style="--c:#7a5bc7">⛺</i>Поселения</span><span><i class="mk sm" style="--c:#d0661f">💲</i>Скупщики</span>
+    <span><i class="mk sm" style="--c:#c0322a">✚</i>Больницы, карантин</span><span><i class="mk sm" style="--c:#3a7bd5">🏛</i>Госструктуры</span>
+    <span><i class="mk sm" style="--c:#5f7a2e">⚒</i>Работы</span><span><i class="mk sm" style="--c:#d0661f">☣</i>Группировки Пустоши</span>
+    <span><i class="mk sm" style="--c:#c0322a">✖</i>Банды города</span><span><i class="mk sm" style="--c:#f97316">☢</i>Радиация (противогаз)</span>
+    <span><i class="mk sm" style="--c:#9b6bff">◆</i>Зоны кладов</span>
+    <span>Приблизь карту — появятся подписи. Слои (сервис, магазины, территории) — кнопка справа сверху.</span>
   </div>
   <div class="card" id="pin-form" hidden>
     <div class="t">Что здесь?</div>
@@ -398,12 +407,12 @@ const BUYERS = {
   hill_prod:   {n:"Скупщик продуктов",   l:"hill",    w:""},
   hill_gold:   {n:"Скупщик золота",      l:"hill",    w:""},
   hill_wood:   {n:"Скупщик дерева",      l:"hill",    w:""},
-  w_jewel:     {n:"Скупщик украшений",   l:"waste",   w:"где-то в Пустоши"},
-  w_things:    {n:"Скупщик вещей",       l:"waste",   w:"где-то в Пустоши"},
-  w_tools:     {n:"Скупщик инструментов",l:"waste",   w:"где-то в Пустоши"},
-  w_parts:     {n:"Скупщик запчастей",   l:"waste",   w:"где-то в Пустоши"},
-  w_elec:      {n:"Скупщик электроники", l:"waste",   w:"где-то в Пустоши"},
-  w_details:   {n:"Скупщик деталей",     l:"waste",   w:"где-то в Пустоши"},
+  w_jewel:     {n:"Скупщик украшений",   l:"waste",   w:""},
+  w_things:    {n:"Скупщик вещей",       l:"waste",   w:""},
+  w_tools:     {n:"Скупщик инструментов",l:"waste",   w:""},
+  w_parts:     {n:"Скупщик запчастей",   l:"waste",   w:""},
+  w_elec:      {n:"Скупщик электроники", l:"waste",   w:""},
+  w_details:   {n:"Скупщик деталей",     l:"waste",   w:""},
   market:      {n:"Торговая площадка",   l:"market",  w:"другим игрокам"},
   none:        {n:"Скупщики не берут",   l:"npc",     w:"переработай или используй"},
 };
@@ -819,12 +828,60 @@ $("g-toc").addEventListener("click", e => {
 });
 
 /* ===================== КАРТА ===================== */
+const SZONES = [["Холм спасения",2451,3797,"set","Мирное поселение — зелёная зона. Скупщики раритета, продуктов, золота и дерева, магазин 24/7."],["Бастион Занкудо",-2971,3346,"set","Мирное поселение — зелёная зона. Скупщики трофеев, еды и камня, автосалон Пустоши, рыбак."],["Скупщик вещей",-471,6290,"buy","Журналы, одеяла, тряпки, кошельки, старые противогазы и прочий хлам."],["Скупщик инструментов",1567,6461,"buy","Ящики с инструментами, дрели, ножницы, ножи."],["Скупщик деталей",550,2663,"buy","Детали."],["Госпиталь в Пустоши",1600,3571,"med","Больница за стеной."],["Скупщик электроники",2421,3081,"buy","Телефоны, планшеты, ноутбуки, плееры, рации, фотоаппараты."],["Скупщик украшений",-2171,4286,"buy","Часы, кольца, цепочки, ожерелья — самый дорогой лут Пустоши."],["Нефтезавод",2785,1489,"job","Сдача нефти для дальнобоя."],["Охотник",305,4341,"svc","Охотничье ружьё и снайперки без лицензии — за наличные."],["Мастерская 5",-172,6276,"svc","Сборка найденных машин, склад запчастей, есть связь."],["Мастерская 4",904,3583,"svc","Сборка найденных машин, склад запчастей, есть связь."],["Скупщик запчастей",1525,6333,"buy","Автозапчасти, аккумуляторы."],["Автобусное депо",407,-630,"job","Водитель автобуса — нужны права на пассажирский транспорт."],["Автодома",-33,-1680,"svc","Продажа автодомов."],["Авторынок",1070,-1934,"svc","Машины с рук."],["Автосалон (Премиум)",-799,-232,"svc",""],["Автосалон (Стандарт)",-48,-1101,"svc",""],["Автосалон (Эконом)",-71,73,"svc",""],["Амфитеатр",673,548,"svc",""],["Апартаменты 1",-604,24,"svc",""],["Апартаменты 2",-41,-587,"svc",""],["Апартаменты 3",-916,-451,"svc",""],["Апельсиновая роща",401,825,"job","Сбор апельсинов."],["Арена",-208,-2020,"svc",""],["Аэропорт",-1032,-2731,"svc","Старт новичка: NPC Джон и стартовые квесты."],["Банк 1",150,-1044,"svc",""],["Банк 3",312,-283,"svc",""],["Банк 11",-2953,478,"svc",""],["Weazel News",-573,-916,"gov","Новости штата."],["База дальнобойщиков",931,-3170,"job","Нефть и заказы бизнесов — нужны права на грузовой."],["Магазин питомцев",-1224,-410,"svc",""],["Казино",910,-34,"svc","Колесо удачи раз в день за 100 фишек."],["Каменоломня",2805,-689,"job","Кирка у NPC, камень сдают на рынок или в Бастион."],["Карантин",609,-408,"med","Снимает заражение: $1 000 и 5 минут реального времени."],["Лицензии — права",-119,-642,"gov","Департамент лицензирования: водительские права."],["Лесопилка",1162,-156,"job","Топор у NPC."],["LSPD — полиция",443,-1067,"gov","Лицензия на оружие: позвони 911 отсюда и сдай экзамен."],["Мастерская 1",1141,-784,"svc","Сборка найденных машин, склад запчастей, есть связь."],["Мастерская 2",-142,-1348,"svc","Сборка найденных машин, склад запчастей, есть связь."],["Мастерская 3",-1323,-233,"svc","Сборка найденных машин, склад запчастей, есть связь."],["Мэрия",-543,-208,"gov","Правительство: фото на паспорт, семья, смена имени. Награды за зомби после ЧП — у NPC на 2 этаже."],["NOOSE",2529,-352,"gov","Федеральная служба."],["Парковка 1",-624,-1230,"svc",""],["Парковка 2",230,-790,"svc",""],["Парковка 3",492,-54,"svc",""],["Парковка 4",-1215,-663,"svc",""],["Паром в город",489,-3358,"svc",""],["Паром на Кайо-Перико",5114,-5069,"svc",""],["Рыбалка (Чумаш)",-3382,968,"job","Место для рыбалки."],["SAMS — больница",-685,302,"med","Центральная больница: медкарта, лечение."],["Рынок — скупщики города",-821,-1303,"buy","Городские скупщики: дерево, камень, апельсины, раритет (клады). Зелёная зона."],["Стройка",-487,-970,"job","Прораб Майк, деньги сразу за доставку."],["Таксопарк",902,-167,"job","Менеджер Дэйв — права на легковой транспорт."],["Лодки · скупщик рыбы",-774,-1491,"buy","Аренда и покупка лодок, рядом скупщик рыбы (синий $ в игре)."],["Кубы",196,-932,"svc",""],["Почта",115,104,"svc",""],["Добыча золота",-559,2951,"job","Промывка: лоток, царская водка и осадитель у NPC. Сдача — на Холме спасения."]];
+const FACTIONS = {"1": "Правительство", "2": "LSPD", "3": "NOOSE", "4": "SAMS", "6": "Weazel News", "7": "The Ballas Gang", "8": "Yakuza", "9": "La Cosa Nostra", "10": "Marabunta Grande", "11": "Рейдеры", "12": "Стрелки", "13": "Содружество", "14": "Юнитологи", "15": "Пропащие", "16": "Адепты"};
+const FGROUP = {"1": "st", "2": "st", "3": "st", "4": "st", "6": "st", "7": "cr", "8": "cr", "9": "cr", "10": "cr", "11": "ws", "12": "ws", "13": "ws", "14": "ws", "15": "ws", "16": "ws"};
+const BASES = [[1, -548, -198], [2, 429, -980], [3, 2519, -360], [4, -671, 335], [6, -588, -923], [7, -621, -1763], [8, -177, 303], [9, -1528, 140], [10, 941, -1555], [11, 1988, 3051], [12, 2439, 4961], [13, 1408, 1148], [14, -1112, 4936], [15, 172, 2792], [16, -64, 6240]];
+const POLYS = {"E":[[-1228,-1863],[-1412,-1584],[-1506,-1372],[-1588,-1196],[-1613,-1142],[-1793,-995],[-2116,-561],[-2079,-459],[-1670,-803],[-1735,-880],[-1694,-950],[-1510,-1081],[-1437,-1097],[-1416,-1208],[-1342,-1335],[-1392,-1376],[-1367,-1507],[-1183,-1822]],"F":[[-2955,3241],[-2980,3176],[-3046,3250],[-3095,3254],[-3070,3184],[-3185,3250],[-3168,3311],[-3103,3348],[-3136,3405],[-3054,3446],[-3082,3507],[-2767,3577],[-2665,3561],[-2542,3778],[-2505,3671],[-2579,3479],[-2816,3524],[-2939,3466],[-2980,3405]],"R":[[1648,2761],[1567,2682],[1532,2585],[1537,2469],[1659,2392],[1659,2391],[1763,2407],[1827,2474],[1821,2519],[1840,2520],[1890,2524],[1891,2585],[1917,2605],[1892,2633],[1893,2683],[1905,2684],[1879,2731],[1831,2717],[1774,2766]],"W":[[-2892,3308],[-2817,3261],[-2757,3187],[-2539,3060],[-2521,2976],[-2507,2926],[-2444,2890],[-2408,2921],[-2382,2932],[-2357,2936],[-2325,2933],[-2300,2926],[-2271,2914],[-2250,2901],[-2230,2886],[-2155,2840],[-2146,2827],[-2146,2813],[-2137,2799],[-2107,2796],[-2108,2788],[-2073,2785],[-2059,2797],[-2036,2805],[-2021,2807],[-1834,2755],[-1825,2766],[-1807,2799],[-1793,2807],[-1744,2809],[-1712,2813],[-1677,2869],[-1662,2863],[-1634,2820],[-1614,2794],[-1573,2760],[-1562,2791],[-1589,2821],[-1647,2907],[-1668,2966],[-1696,3114],[-1692,3154],[-1658,3229],[-1949,3397],[-1983,3425],[-2141,3474],[-2263,3474],[-2390,3420],[-2575,3323],[-2674,3376],[-2745,3351],[-2841,3401]],"O":[[3406,3732],[3421,3718],[3408,3676],[3403,3642],[3578,3606],[3583,3600],[3611,3593],[3622,3653],[3618,3689],[3658,3731],[3652,3761],[3636,3805],[3612,3818],[3586,3821],[3502,3823],[3478,3815],[3463,3804],[3455,3787],[3415,3773],[3394,3744]]};
+const ZCAT = {"buy": ["💲", "#d0661f"], "med": ["✚", "#c0322a"], "gov": ["🏛", "#3a7bd5"], "job": ["⚒", "#5f7a2e"], "svc": ["🔧", "#59615a"], "set": ["⛺", "#7a5bc7"]};
+
+/* ===================== СЛОИ КАРТЫ СЕРВЕРА ===================== */
+const ZONE_URL = "https://d9-reminders.9--ot.workers.dev/zones";   // территории — через наш сервер (CORS)
+const FCOLOR = {st:"#3a7bd5", cr:"#c0322a", ws:"#d0661f"};
+const mk = (ic, c, size = 24, big = false) => L.divIcon({className:"", html:`<div class="mk${big ? " big" : ""}" style="--c:${c}">${ic}</div>`, iconSize:[size, size], iconAnchor:[size / 2, size / 2]});
+const lbl = (m, text, level) => m.bindTooltip(text, {permanent:true, direction:"right", offset:[12, 0], className:"zl zl" + level});
+function buildServerLayers(){
+  const groups = {buy:L.layerGroup(), med:L.layerGroup(), gov:L.layerGroup(), job:L.layerGroup(), svc:L.layerGroup(), set:L.layerGroup(), fac:L.layerGroup(), zones:L.layerGroup(), terr:L.layerGroup()};
+  SZONES.forEach(([n, x, y, cat, d]) => {
+    const [ic, c] = ZCAT[cat];
+    const m = L.marker(toLL(x, y), {icon:mk(ic, c, cat === "set" ? 30 : 24, cat === "set")}).bindPopup(`<b>${esc(n)}</b>${d ? "<br>" + esc(d) : ""}<br><span style="color:#8f9889">зелёная зона</span>`);
+    lbl(m, n, cat === "set" ? 1 : cat === "svc" ? 3 : 2); m.addTo(groups[cat]);
+  });
+  BASES.forEach(([f, x, y]) => {
+    const g = FGROUP[f], n = FACTIONS[f];
+    const m = L.marker(toLL(x, y), {icon:mk(g === "ws" ? "☣" : g === "cr" ? "✖" : "★", FCOLOR[g], 26)}).bindPopup(`<b>${esc(n)}</b><br>${g === "ws" ? "База группировки Пустоши. Чужим тут не рады." : g === "cr" ? "База городской банды." : "Госструктура."}`);
+    lbl(m, n, 1); m.addTo(groups.fac);
+  });
+  const poly = (k, name, color, d) => {
+    const pg = L.polygon(POLYS[k].map(([x, y]) => toLL(x, y)), {color, weight:2, opacity:.9, fillColor:color, fillOpacity:.15}).bindPopup(`<b>${name}</b><br>${d}`);
+    pg.bindTooltip(name, {permanent:true, direction:"center", className:"zl zl1 zarea"}); pg.addTo(groups.zones);
+  };
+  poly("E", "Клады: западный пляж", "#9b6bff", "Поиск кладов металлоискателем.");
+  poly("F", "Клады: пляж у Бастиона", "#9b6bff", "Поиск кладов металлоискателем.");
+  poly("W", "☢ Форт Занкудо", "#f97316", "Радиация — нужен противогаз. Бункер по красной карте (с военных зомби). Здесь можно убивать игроков.");
+  poly("R", "☢ Тюрьма", "#f97316", "Радиация — нужен противогаз. Бункер по зелёной карте (с любых зомби).");
+  poly("O", "☢ Human Labs", "#f97316", "Радиация — нужен противогаз. Бункер по синей карте (с зомби-медиков).");
+  fetch(ZONE_URL).then(r => r.json()).then(d => {
+    (d.captureZones || []).forEach(t => {
+      const owner = FACTIONS[t.factionId] || "без владельца", c = FCOLOR[FGROUP[t.factionId]] || "#888";
+      L.rectangle([toLL(t.x - 100, t.y - 100), toLL(t.x + 100, t.y + 100)], {color:c, weight:1, fillColor:c, fillOpacity:.22})
+        .bindPopup(`<b>Территория #${t.id}</b><br>Владелец: ${esc(owner)}`).bindTooltip(owner, {permanent:true, direction:"center", className:"zl zl3 zarea"}).addTo(groups.terr);
+    });
+  }).catch(() => {});
+  return groups;
+}
+function syncLabels(){
+  if (!map) return;
+  const z = map.getZoom(), el = map.getContainer();
+  el.classList.toggle("far", z < 3.5); el.classList.toggle("lv1", z >= 2.5); el.classList.toggle("lv2", z >= 3.5); el.classList.toggle("lv3", z >= 4.5);
+}
+
 /* Тайлы и формула перевода игровых координат — с карты вики d9-rp.com. */
 const CAL = {ax:1.95401829172715, bx:15383.0348948326, ay:-1.95446936710272, by:20641.1462385458};
 const PLACES = [
-  {k:"hill",    n:"Холм спасения",   x:2450,  y:3827, d:"Поселение (отмечено по бару «Холм Спасения»). Скупщики: раритета, продуктов, золота, дерева."},
-  {k:"bastion", n:"Бастион Занкудо", x:-2975, y:3363, d:"Поселение (отмечено по бару «Бастион Занкудо»). Скупщики: трофеев, еды, камня. Рядом пляж для кладов."},
-  {k:"city",    n:"Город",           x:-200,  y:-900, d:"Лос-Сантос. Скупщики рыбы, раритета, дерева, камня и апельсинов — в основном на городском рынке. Точку рынка вики не даёт: поставь метку сам."},
+  {k:"hill",    n:"Холм спасения",   x:2451,  y:3797, d:"Мирное поселение. Скупщики раритета, продуктов, золота, дерева."},
+  {k:"bastion", n:"Бастион Занкудо", x:-2971, y:3346, d:"Мирное поселение. Скупщики трофеев, еды, камня."},
+  {k:"city",    n:"Рынок",           x:-821,  y:-1303, d:"Городской рынок — скупщики города."},
 ];
 const SHOPS = [
   ["gun","Ammu-Nation Пиллбокс-Хилл",21,-1109],["gun","Ammu-Nation Сайперс-Флэтс",811,-2155],["gun","Ammu-Nation Чумаш",-3166,1084],
@@ -863,26 +920,32 @@ function initMap(){
   window.scrollTo(0, 0); sizeMap();
   if (map) { map.invalidateSize(); return; }
   if (!window.L) { $("map").innerHTML = `<div class="empty">Карта не загрузилась. Проверь интернет и открой вкладку ещё раз.</div>`; return; }
-  map = L.map("map", {crs:L.CRS.Simple, minZoom:1, maxZoom:8, zoomSnap:0.5, attributionControl:true});
+  map = L.map("map", {crs:L.CRS.Simple, minZoom:2, maxZoom:8, zoomSnap:0.5, attributionControl:true});
   const bounds = L.latLngBounds(map.unproject([0, 32768], 7), map.unproject([32768, 0], 7));
   const layer = (k, ext) => L.tileLayer(`https://d9-rp.com/map/${k}/{z}/{x}/{y}.${ext}`, {minZoom:1, maxZoom:8, maxNativeZoom:7, noWrap:true, bounds, attribution:'Карта: <a href="https://d9-rp.com/ru/wiki/map" target="_blank">d9-rp.com</a>'});
   const dark = layer("black", "png").addTo(map), sat = layer("satellite", "jpg");
   map.setMaxBounds(bounds.pad(0.2));
   const shops = L.layerGroup(SHOPS.map(([t, n, x, y]) => L.marker(toLL(x, y), {icon:dot(SHOP_INFO[t][0], 11)}).bindPopup(`<b>${esc(n)}</b><br>${SHOP_INFO[t][1]}`)));
-  const marks = L.layerGroup(LANDMARKS.map(m => L.marker(toLL(m.x, m.y), {icon:dot(m.c, 16)}).bindPopup(`<b>${m.n}</b><br>${m.d}`)));
-  const places = L.layerGroup(PLACES.map(p => (p.m = L.marker(toLL(p.x, p.y), {icon:dot(LOC_COLOR[p.k], 20)}).bindPopup(`<b>${p.n}</b><br>${p.d}`))));
+  const G = buildServerLayers();
+  PLACES.forEach(p => { p.m = L.marker(toLL(p.x, p.y), {icon:mk("", "transparent", 1), interactive:false}).bindPopup(`<b>${p.n}</b><br>${p.d}`); p.m.addTo(map); });
   pinLayer = L.layerGroup().addTo(map);
-  shops.addTo(map); places.addTo(map); marks.addTo(map);
-  layersCtl = L.control.layers({"Тёмная":dark, "Спутник":sat}, {"Поселения":places, "Бункеры и места":marks, "Магазины":shops, "Мои метки":pinLayer}, {collapsed:true}).addTo(map);
-  map.fitBounds(L.latLngBounds(toLL(-3600, -3800), toLL(4200, 7800)));
+  ["set", "buy", "med", "gov", "job", "fac", "zones"].forEach(k => G[k].addTo(map));
+  layersCtl = L.control.layers({"Тёмная":dark, "Спутник":sat}, {
+    "⛺ Поселения":G.set, "💲 Скупщики":G.buy, "✚ Медицина":G.med, "🏛 Госструктуры":G.gov, "⚒ Работы":G.job, "🔧 Сервис":G.svc,
+    "☣ Базы фракций":G.fac, "☢ Клады и радиация":G.zones, "▦ Территории (захват)":G.terr, "🛒 Магазины":shops, "📍 Мои метки":pinLayer}, {collapsed:true}).addTo(map);
+  map.on("zoomend", syncLabels);
+  map.fitBounds(L.latLngBounds(toLL(-3600, -3800), toLL(4200, 7800))); syncLabels();
   map.on("click", e => { if (!addMode) return; pendingLL = e.latlng; openPinForm(); });
   drawPins(); drawSharedPins();
 }
 /* Где стоит скупщик: своя метка → метки игроков (где их гуще) → поселение → примерное место. */
-const BUYER_DEFAULT = {city_fish:{x:-790, y:-1470, src:"примерно, у аренды лодок"}};
+const BUYER_ZONE = {w_things:"Скупщик вещей", w_tools:"Скупщик инструментов", w_details:"Скупщик деталей", w_elec:"Скупщик электроники", w_jewel:"Скупщик украшений", w_parts:"Скупщик запчастей",
+  city_fish:"Лодки · скупщик рыбы", city_rare:"Рынок — скупщики города", city_wood:"Рынок — скупщики города", city_stone:"Рынок — скупщики города", city_orange:"Рынок — скупщики города"};
+const zoneSpot = n => { const z = SZONES.find(z => z[0] === n); return z ? {x:z[1], y:z[2]} : null; };
 function buyerSpot(k){
   const own = pins.filter(p => p.b === k);
   if (own.length) { const p = own[own.length - 1]; return {x:p.x, y:p.y, src:"твоя метка"}; }
+  if (BUYER_ZONE[k]) { const z = zoneSpot(BUYER_ZONE[k]); if (z) return {x:z.x, y:z.y, src:k.startsWith("city_") && k !== "city_fish" ? "городской рынок" : "по карте сервера"}; }
   const sp = shared.pins.filter(r => r.kind === k);
   if (sp.length) {
     let best = sp[0], bn = 0;
@@ -891,7 +954,7 @@ function buyerSpot(k){
   }
   const B = BUYERS[k];
   if (B.l === "hill" || B.l === "bastion") { const p = PLACES.find(p => p.k === B.l); return {x:p.x, y:p.y, src:"в поселении", approx:true}; }
-  return BUYER_DEFAULT[k] || null;
+  return null;
 }
 let spotMarker = null;
 function focusBuyer(k){
@@ -918,7 +981,7 @@ function drawPins(){
     L.marker(toLL(p.x, p.y), {icon:dot(c, 16)}).bindPopup(`<b>${esc(pinName(p))}</b>${p.n ? "<br>" + esc(p.n) : ""}<br><a href="#" data-del="${i}">Удалить метку</a>`).addTo(pinLayer);
   });
   $("pins-list").innerHTML = pins.length ? `<div class="t">Мои метки</div>` + pins.map((p, i) => `<div class="row" style="padding:4px 0"><span>${esc(pinName(p))}${p.n ? ` <span class="note">· ${esc(p.n)}</span>` : ""}</span><button class="chip" data-go="${i}">Показать</button></div>`).join("")
-    : `<div class="note">Пока меток нет. Нашёл скупщика в игре — нажми «＋ Метка скупщика», ткни в это место на карте и выбери, кто там стоит.</div>`;
+    : `<div class="note">Пока меток нет. Нашёл что-то полезное в игре — нажми «＋ Метка», ткни в это место на карте и выбери, что там.</div>`;
 }
 const pinName = p => BUYERS[p.b] ? BUYERS[p.b].n : PLACE_TYPES[p.b] || "Метка";
 function openPinForm(){
