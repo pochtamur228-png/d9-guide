@@ -127,7 +127,7 @@ dt{color:var(--muted)}dd{margin:0}
 <section id="v-map" class="wrap" hidden>
   <div><h1>Карта</h1><p class="sub">Поселения и магазины — с карты сервера. Скупщиков в игре видно на карте по жёлтому значку $ — отмечай их здесь, чтобы помнить, кто что берёт.</p></div>
   <div class="chips">
-    <button class="chip" id="m-add" aria-pressed="false">＋ Метка скупщика</button>
+    <button class="chip" id="m-add" aria-pressed="false">＋ Метка</button>
     <button class="chip" data-place="hill">Холм спасения</button>
     <button class="chip" data-place="bastion">Бастион Занкудо</button>
     <button class="chip" data-place="city">Город</button>
@@ -135,8 +135,8 @@ dt{color:var(--muted)}dd{margin:0}
   <p class="note" id="m-hint" style="margin:0"></p>
   <div id="map" class="mapbox"></div>
   <div class="card" id="pin-form" hidden>
-    <div class="t">Кто здесь стоит?</div>
-    <label class="f" for="pin-b">Скупщик<select id="pin-b"></select></label>
+    <div class="t">Что здесь?</div>
+    <label class="f" for="pin-b">Скупщик или место<select id="pin-b"></select></label>
     <label class="f" for="pin-n">Заметка<input id="pin-n" type="text" placeholder="у ворот, берёт часы"></label>
     <div class="grid2"><button class="btn" id="pin-save">Сохранить</button><button class="btn ghost" id="pin-cancel">Отмена</button></div>
   </div>
@@ -146,6 +146,21 @@ dt{color:var(--muted)}dd{margin:0}
 <!-- ======================= РАБОТЫ ======================= -->
 <section id="v-jobs" class="wrap" hidden>
   <div><h1>Работы</h1><p class="sub">Что нужно, где добывать и куда сдавать.</p></div>
+  <details class="card" id="fish-card">
+    <summary>Мой справочник рыб <span class="note" id="fish-count"></span></summary>
+    <p class="note" style="margin:8px 0 0">В игре 100 видов. Поймал новую — запиши, на что и когда клюёт. Через пару недель тут будет своя шпаргалка.</p>
+    <div class="grid2" style="margin-top:8px">
+      <label class="f" for="fi-n">Рыба<input id="fi-n" type="text" placeholder="Атлантическая треска"></label>
+      <label class="f" for="fi-r">Редкость<select id="fi-r"><option>Обычная</option><option>Необычная</option><option>Редкая</option><option>Эпическая</option><option>Легендарная</option></select></label>
+      <label class="f" for="fi-b">Наживка<select id="fi-b"><option>Червь</option><option>Опарыш</option><option>Кукуруза</option><option>Тесто</option><option>Креветка</option><option>Моллюск</option><option>Блесна</option><option>Воблер</option><option>Силиконовая рыбка</option><option>Вращающаяся блесна</option></select></label>
+      <label class="f" for="fi-t">Когда<select id="fi-t"><option>День</option><option>Ночь</option><option>Любое время</option></select></label>
+      <label class="f" for="fi-w">Вес, кг<input id="fi-w" type="number" inputmode="decimal" min="0" step="any" placeholder="1.9"></label>
+      <label class="f" for="fi-p">Продал за, $<input id="fi-p" type="number" inputmode="numeric" min="0" step="1" placeholder="—"></label>
+    </div>
+    <label class="f" for="fi-where" style="margin-top:8px">Где ловил<input id="fi-where" type="text" placeholder="пирс, море, река Занкудо…"></label>
+    <button class="btn" id="fi-add" style="margin-top:8px">Записать рыбу</button>
+    <div id="fish-list" style="margin-top:8px"></div>
+  </details>
   <div id="jobs" style="display:flex;flex-direction:column;gap:8px"></div>
 </section>
 
@@ -189,9 +204,16 @@ dt{color:var(--muted)}dd{margin:0}
       </label>
       <label class="f" for="l-sum">Сумма, $<input id="l-sum" type="number" inputmode="numeric" min="0" step="1" placeholder="0"></label>
     </div>
-    <label class="f" for="l-note">Заметка<input id="l-note" type="text" placeholder="наценка рыбы 18%, 2 щуки"></label>
+    <div class="grid2">
+      <label class="f" for="l-item">Что продал<input id="l-item" type="text" list="item-names" placeholder="Золотые часы"></label>
+      <label class="f" for="l-qty">Сколько штук<input id="l-qty" type="number" inputmode="numeric" min="1" step="1" placeholder="1"></label>
+    </div>
+    <datalist id="item-names"></datalist>
+    <label class="f" for="l-note">Заметка<input id="l-note" type="text" placeholder="скупщик у Форта Занкудо"></label>
     <button class="btn" id="l-add">Записать</button>
   </div>
+  <h2>Мои цены</h2>
+  <div class="card" id="my-prices"></div>
   <h2>По источникам за 7 дней</h2>
   <div class="card" id="by-src"></div>
   <h2>Последние записи</h2>
@@ -201,6 +223,11 @@ dt{color:var(--muted)}dd{margin:0}
 <!-- ======================= ГАЙД ======================= -->
 <section id="v-info" class="wrap" hidden>
   <div><h1>Гайд новичка</h1><p class="sub">DISTRICT 9 RP — сервер GTA 5 со своим лаунчером. Город за стеной и Пустошь с заражёнными. Картинки предметов — с вики сервера.</p></div>
+  <details class="card" id="chk-card" open>
+    <summary>Перед вылазкой в Пустошь <span class="note" id="chk-count"></span></summary>
+    <div id="chk" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
+    <button class="btn ghost" id="chk-reset" style="margin-top:4px">Сбросить для новой вылазки</button>
+  </details>
   <div class="chips" id="g-toc"></div>
   <div id="guide" style="display:flex;flex-direction:column;gap:8px"></div>
   <div class="card">
@@ -317,10 +344,10 @@ const JOBS = [
   {n:"Луттер Пустоши", gear:"Ключи для укреплённых ящиков, карты для бункеров", where:"Ящики и бункеры Пустоши", sell:"Профильные скупщики Пустоши или игроки", pay:"Зависит от предмета"},
   {n:"Агроном", gear:"Семена (ящики Пустоши или 24/7)", where:"Свой участок у дома или зоны посадки в Пустоши", sell:"Скупщик продуктов, Холм спасения", pay:"Цена скупщика"},
   {n:"Повар", gear:"Ингредиенты", where:"Кухня или костёр", sell:"Скупщик еды в Бастионе Занкудо или игрокам", pay:"По прайсу скупщика"},
-  {n:"Дальнобойщик", gear:"Устроиться на базе дальнобойщиков", where:"Нефть: любая вышка → точка в Пустоши у казино. Или заказы бизнесов", sell:"—", pay:"За доставку, часть заказов — в PayDay"},
+  {n:"Дальнобойщик", gear:"Права на грузовой транспорт (автошкола). Устроиться на базе дальнобойщиков", where:"Нефть: любая вышка → точка в Пустоши у казино. Или заказы бизнесов", sell:"—", pay:"За доставку, часть заказов — в PayDay"},
   {n:"Работник стройки", gear:"Устроиться у прораба Майка в центре", where:"Стройка в центре города", sell:"—", pay:"Сразу за каждый доставленный материал"},
-  {n:"Водитель автобуса", gear:"Диспетчер Том, депо у карантинной зоны", where:"Маршруты по городу", sell:"—", pay:"Остановки и пассажиры, выплата в PayDay"},
-  {n:"Таксист", gear:"Менеджер Дэйв в таксопарке", where:"Заказы через телефон", sell:"—", pay:"Зависит от расстояния"},
+  {n:"Водитель автобуса", gear:"Права на пассажирский транспорт (автошкола). Диспетчер Том, депо у карантинной зоны", where:"Маршруты по городу", sell:"—", pay:"Остановки и пассажиры, выплата в PayDay"},
+  {n:"Таксист", gear:"Права на легковой транспорт. Менеджер Дэйв в таксопарке", where:"Заказы через телефон", sell:"—", pay:"Зависит от расстояния"},
 ];
 
 /* ===================== СКУПЩИКИ ===================== */
@@ -425,7 +452,16 @@ function load(key, cb){
 const SOURCES = ["Клады","Рыбалка","Золото","Охота","Лес","Камень","Апельсины","Лут Пустоши","Урожай","Еда","Работа по найму","Другое"];
 $("l-src").innerHTML = SOURCES.map(s => `<option>${s}</option>`).join("");
 let log = [];
+function renderPrices(){
+  const by = {};
+  log.filter(e => e.it).forEach(e => { const k = norm(e.it); const g = (by[k] = by[k] || {n:e.it, sum:0, q:0, last:null, lt:0}); g.sum += e.s; g.q += e.q || 1; if (e.t > g.lt) { g.lt = e.t; g.last = e.s / (e.q || 1); } });
+  const arr = Object.values(by).sort((a, b) => b.sum / b.q - a.sum / a.q);
+  $("my-prices").innerHTML = arr.length ? `<div class="row note"><span>Предмет</span><span>средняя · последняя</span></div>` + arr.map(g => `<div class="row" style="padding:3px 0"><span>${esc(g.n)} <span class="note">×${g.q}</span></span><span class="num">${money(g.sum / g.q)} · ${money(g.last)}</span></div>`).join("")
+    : `<div class="note">Указывай «Что продал» и «Сколько штук» — здесь соберутся твои реальные цены за штуку, от дорогих к дешёвым.</div>`;
+  $("item-names").innerHTML = ITEMS.map(i => `<option value="${esc(i.n)}">`).join("");
+}
 function renderLog(){
+  renderPrices();
   const now = Date.now(), day0 = new Date().setHours(0,0,0,0), week0 = now - 7 * 864e5;
   $("s-today").textContent = money(log.filter(e => e.t >= day0).reduce((a, e) => a + e.s, 0));
   const wk = log.filter(e => e.t >= week0);
@@ -442,7 +478,9 @@ function renderLog(){
 $("l-add").addEventListener("click", () => {
   const s = Math.round(num("l-sum"));
   if (!s) { $("l-sum").focus(); notify("Впиши сумму продажи"); return; }
-  log.push({t: Date.now(), src: $("l-src").value, s, n: $("l-note").value.trim().slice(0, 80)});
+  const itName = $("l-item").value.trim().slice(0, 40), q = Math.max(1, Math.round(num("l-qty")) || 1);
+  log.push({t: Date.now(), src: $("l-src").value, s, n: $("l-note").value.trim().slice(0, 80), it: itName || undefined, q: itName ? q : undefined});
+  $("l-item").value = ""; $("l-qty").value = "";
   if (log.length > 400) log = log.slice(-400);
   $("l-sum").value = ""; $("l-note").value = "";
   save("log", log); renderLog(); haptic("success");
@@ -473,14 +511,16 @@ const GUIDE = [
    <tr><td>P / Z</td><td>планшет: семья, организация, маркет, рыбалка</td></tr>
    <tr><td>X</td><td>ремень безопасности</td></tr>
    <tr><td>Esc → Игра</td><td>переподключиться (F1 больше не работает)</td></tr></table>`+
-  `<div class="warnbox">Совет: сначала заработай в городе (стройка платит сразу), собери деньги на медкарту, лицензию, противогаз и внедорожник — и только потом в Пустошь.</div>`},
+  P("<b>Водительские права.</b> Квесты их <b>не дают</b> — получай отдельно в <b>автошколе</b> (есть на карте в игре). Категории: легковой транспорт (около $250), пассажирский (около $750, нужен для работы на автобусе) и грузовой (около $1 000, для дальнобоя). Полиция может остановить на дороге и потребовать права, так что без них за руль лучше не садиться.")+
+  `<div class="warnbox">Совет: сначала получи права, заработай в городе (стройка платит сразу), собери деньги на медкарту, лицензию на оружие, противогаз и внедорожник — и только потом в Пустошь.</div>`},
  {id:"exit", t:"2. Как выйти в Пустошь", h:
   P("Из города ведут <b>3 КПП</b>. Силовики на КПП могут проверить:")+
   `<table class="tbl">
    <tr><td>${it(194,"Противогаз")}</td><td>полнолицевой, из <b>Магазина масок</b> (он есть на карте). Цена — примерно от 30 до 70 тыс. Балаклава и резиновая маска не подходят</td></tr>
    <tr><td>Медкарта</td><td>у медиков в центральной больнице. Примерно 15–30 тыс. (с осмотром и вопросами)</td></tr>
    <tr><td>Лицензия на оружие</td><td>в LSPD: позвонить 911, пройти устный экзамен. Около 35 тыс. Нужна медкарта</td></tr>
-   <tr><td>Оружие для самообороны</td><td>с лицензией — в Ammu-Nation</td></tr></table>`+
+   <tr><td>Оружие для самообороны</td><td>с лицензией — в Ammu-Nation</td></tr>
+   <tr><td>Водительские права</td><td>в автошколе; квесты их не дают</td></tr></table>`+
   P("<b>Транспорт:</b> в Пустошь можно только на внедорожниках — в автосалоне они помечены буквой <b>О</b> (оффроуд). На обычной машине туда ехать нельзя, накажут.")+
   P("<b>Топливо:</b> заправок в Пустоши почти нет. Вози <b>канистру</b> (24/7) и <b>шланг</b> (из ящиков или у игроков) — им сливают бензин на заброшенных заправках.")+
   P("<b>Нелегальный путь:</b> пролом в стене за дамбой — без проверок, но на свой риск.")+
@@ -613,6 +653,14 @@ const SHOPS = [
   ["shop","24/7",-1226,-903],["shop","24/7",-1491,-383],["shop","24/7",-1427,-267],["shop","24/7",1140,-981],["shop","24/7",-3242,1002],["shop","24/7",2558,382],
   ["shop","24/7 (Холм спасения)",2408,3813],["shop","24/7 (Бастион Занкудо)",-2973,3398],
 ];
+const LANDMARKS = [
+  {n:"Форт Занкудо — военная база", x:-2150, y:3080, c:"#e13b3b", d:"Бункер по <b>красной карте</b> (с военных зомби). Заражённая зона — нужен противогаз. Ценные военные зомби, здесь можно убивать игроков."},
+  {n:"Федеральная тюрьма", x:1850, y:2600, c:"#79ce79", d:"Бункер по <b>зелёной карте</b> (с любых зомби). Есть верстак."},
+  {n:"Human Labs", x:3560, y:3720, c:"#65b9e7", d:"Бункер по <b>синей карте</b> (с зомби-медиков). Здесь началась эпидемия."},
+  {n:"Река Занкудо — золото (примерно)", x:-1300, y:2600, c:"#f0ca57", d:"Промывка золота: NPC продаёт лоток, царскую водку и осадитель. Точное место уточни в игре."},
+  {n:"Пирс Дель-Перро (примерно)", x:-1850, y:-1230, c:"#7ec1ff", d:"Рыбалка с пирса. Рыбак Джим — синий крючок на карте в игре."},
+];
+const PLACE_TYPES = {kpp:"КПП", workshop:"Мастерская", quarantine:"Карантин", school:"Автошкола", breach:"Пролом в стене", fisher:"Рыбак", bench:"Верстак", zone:"Опасная зона", farm:"Хорошее место для фарма"};
 const SHOP_INFO = {mask:["#a174b3","Противогаз для КПП и заражённых зон"], gun:["#e13b3b","Оружие и патроны"], shop:["#79ce79","Металлоискатель, лопата, семена"], boat:["#65b9e7","Лодки"], car:["#f0ca57","Транспорт"]};
 const LOC_COLOR = {city:"#3a7bd5", bastion:"#b4561f", hill:"#7a5bc7", waste:"#6b7a3a", market:"#555", npc:"#555", other:"#c4881b"};
 let map = null, pins = [], pinLayer = null, addMode = false, pendingLL = null;
@@ -628,10 +676,11 @@ function initMap(){
   const dark = layer("black", "png").addTo(map), sat = layer("satellite", "jpg");
   map.setMaxBounds(bounds.pad(0.2));
   const shops = L.layerGroup(SHOPS.map(([t, n, x, y]) => L.marker(toLL(x, y), {icon:dot(SHOP_INFO[t][0], 11)}).bindPopup(`<b>${esc(n)}</b><br>${SHOP_INFO[t][1]}`)));
+  const marks = L.layerGroup(LANDMARKS.map(m => L.marker(toLL(m.x, m.y), {icon:dot(m.c, 16)}).bindPopup(`<b>${m.n}</b><br>${m.d}`)));
   const places = L.layerGroup(PLACES.map(p => (p.m = L.marker(toLL(p.x, p.y), {icon:dot(LOC_COLOR[p.k], 20)}).bindPopup(`<b>${p.n}</b><br>${p.d}`))));
   pinLayer = L.layerGroup().addTo(map);
-  shops.addTo(map); places.addTo(map);
-  L.control.layers({"Тёмная":dark, "Спутник":sat}, {"Поселения":places, "Магазины":shops, "Мои метки":pinLayer}, {collapsed:true}).addTo(map);
+  shops.addTo(map); places.addTo(map); marks.addTo(map);
+  L.control.layers({"Тёмная":dark, "Спутник":sat}, {"Поселения":places, "Бункеры и места":marks, "Магазины":shops, "Мои метки":pinLayer}, {collapsed:true}).addTo(map);
   map.setView(toLL(0, 1200), 2.5);
   map.on("click", e => { if (!addMode) return; pendingLL = e.latlng; openPinForm(); });
   drawPins();
@@ -644,14 +693,15 @@ function drawPins(){
   pinLayer.clearLayers();
   pins.forEach((p, i) => {
     const B = BUYERS[p.b], c = B ? LOC_COLOR[B.l] : LOC_COLOR.other;
-    L.marker(toLL(p.x, p.y), {icon:dot(c, 16)}).bindPopup(`<b>${esc(B ? B.n : "Метка")}</b>${p.n ? "<br>" + esc(p.n) : ""}<br><a href="#" data-del="${i}">Удалить метку</a>`).addTo(pinLayer);
+    L.marker(toLL(p.x, p.y), {icon:dot(c, 16)}).bindPopup(`<b>${esc(pinName(p))}</b>${p.n ? "<br>" + esc(p.n) : ""}<br><a href="#" data-del="${i}">Удалить метку</a>`).addTo(pinLayer);
   });
-  $("pins-list").innerHTML = pins.length ? `<div class="t">Мои метки</div>` + pins.map((p, i) => `<div class="row" style="padding:4px 0"><span>${esc(BUYERS[p.b] ? BUYERS[p.b].n : "Метка")}${p.n ? ` <span class="note">· ${esc(p.n)}</span>` : ""}</span><button class="chip" data-go="${i}">Показать</button></div>`).join("")
+  $("pins-list").innerHTML = pins.length ? `<div class="t">Мои метки</div>` + pins.map((p, i) => `<div class="row" style="padding:4px 0"><span>${esc(pinName(p))}${p.n ? ` <span class="note">· ${esc(p.n)}</span>` : ""}</span><button class="chip" data-go="${i}">Показать</button></div>`).join("")
     : `<div class="note">Пока меток нет. Нашёл скупщика в игре — нажми «＋ Метка скупщика», ткни в это место на карте и выбери, кто там стоит.</div>`;
 }
+const pinName = p => BUYERS[p.b] ? BUYERS[p.b].n : PLACE_TYPES[p.b] || "Метка";
 function openPinForm(){
   $("pin-form").hidden = false;
-  $("pin-b").innerHTML = Object.entries(BUYERS).filter(([k]) => !["market","none"].includes(k)).map(([k, B]) => `<option value="${k}">${B.n} — ${LOC[B.l]}</option>`).join("") + `<option value="other">Другое</option>`;
+  $("pin-b").innerHTML = Object.entries(BUYERS).filter(([k]) => !["market","none"].includes(k)).map(([k, B]) => `<option value="${k}">${B.n} — ${LOC[B.l]}</option>`).join("") + `<optgroup label="Места">` + Object.entries(PLACE_TYPES).map(([k, n]) => `<option value="${k}">${n}</option>`).join("") + `</optgroup><option value="other">Другое</option>`;
   $("pin-n").value = ""; $("pin-form").scrollIntoView({behavior:"smooth", block:"nearest"});
 }
 $("m-add").addEventListener("click", () => {
@@ -676,6 +726,46 @@ document.addEventListener("click", e => {
 });
 document.querySelectorAll("[data-place]").forEach(b => b.addEventListener("click", () => focusSettlement(b.dataset.place)));
 
+
+/* ===================== ЧЕК-ЛИСТ ===================== */
+const CHECK = ["Водительские права","Медкарта","Лицензия на оружие","Противогаз (полнолицевой)","Оружие и патроны (~300 + 300 запас)","Аптечки и пластыри","Шприц — поднять напарника","Вода и еда","Внедорожник с полным баком","Канистра и шланг","Ремонтный набор","Свободное место в рюкзаке","Деньги в банке, а не на руках"];
+let checked = {};
+function renderChk(){
+  $("chk").innerHTML = CHECK.map((t, i) => `<label class="row" style="justify-content:flex-start;gap:10px" for="chk-${i}"><input type="checkbox" id="chk-${i}" data-i="${i}" ${checked[i] ? "checked" : ""} style="width:20px;height:20px;accent-color:var(--btn)"><span ${checked[i] ? 'style="color:var(--muted);text-decoration:line-through"' : ""}>${t}</span></label>`).join("");
+  const n = CHECK.filter((_, i) => checked[i]).length;
+  $("chk-count").textContent = n === CHECK.length ? "· всё готово ✓" : `· ${n}/${CHECK.length}`;
+}
+$("chk").addEventListener("change", e => { const i = e.target.dataset.i; if (i === undefined) return; checked[i] = e.target.checked; save("check", checked); renderChk(); haptic(); });
+$("chk-reset").addEventListener("click", () => { checked = {}; save("check", checked); renderChk(); haptic("success"); });
+
+/* ===================== СПРАВОЧНИК РЫБ ===================== */
+let fishes = [];
+const RAR = ["Обычная","Необычная","Редкая","Эпическая","Легендарная"];
+function renderFish(){
+  const by = {};
+  fishes.forEach(f => { const k = norm(f.n); (by[k] = by[k] || {n:f.n, r:f.r, list:[]}).list.push(f); });
+  const arr = Object.values(by).sort((a, b) => RAR.indexOf(b.r) - RAR.indexOf(a.r) || a.n.localeCompare(b.n));
+  $("fish-count").textContent = arr.length ? `· ${arr.length} из 100` : "";
+  $("fish-list").innerHTML = arr.map(g => {
+    const baits = [...new Set(g.list.map(f => f.b))].join(", "), times = [...new Set(g.list.map(f => f.t))].join(", ");
+    const ws = g.list.map(f => f.w).filter(Boolean), ps = g.list.map(f => f.p).filter(Boolean);
+    const wheres = [...new Set(g.list.map(f => f.where).filter(Boolean))].join(", ");
+    return `<div class="log-item"><span><b>${esc(g.n)}</b> <span class="note">· ${esc(g.r)}</span></span><span class="num">${ps.length ? money(ps.reduce((a, b) => a + b, 0) / ps.length) : ""}</span><button class="x" data-fn="${esc(norm(g.n))}" aria-label="Удалить">×</button>
+      <small>${esc(baits)} · ${esc(times)}${ws.length ? ` · ${Math.min(...ws)}–${Math.max(...ws)} кг` : ""}${wheres ? " · " + esc(wheres) : ""} · поймано ${g.list.length}</small></div>`;
+  }).join("") || `<div class="note">Пока пусто.</div>`;
+}
+$("fi-add").addEventListener("click", () => {
+  const n = $("fi-n").value.trim(); if (!n) { $("fi-n").focus(); return; }
+  fishes.push({n, r:$("fi-r").value, b:$("fi-b").value, t:$("fi-t").value, w:num("fi-w") || null, p:Math.round(num("fi-p")) || null, where:$("fi-where").value.trim().slice(0, 40), d:Date.now()});
+  if (fishes.length > 500) fishes = fishes.slice(-500);
+  $("fi-w").value = ""; $("fi-p").value = "";
+  save("fish", fishes); renderFish(); haptic("success");
+});
+$("fish-list").addEventListener("click", e => {
+  const b = e.target.closest("[data-fn]"); if (!b) return;
+  if (b.dataset.armed) { fishes = fishes.filter(f => norm(f.n) !== b.dataset.fn); save("fish", fishes); renderFish(); }
+  else { b.dataset.armed = "1"; b.textContent = "удалить?"; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = "×"; } }, 2500); }
+});
 /* ===================== НАВИГАЦИЯ ===================== */
 function show(v){
   ["sell","map","jobs","calc","log","info"].forEach(k => { $("v-" + k).hidden = k !== v; });
@@ -687,9 +777,11 @@ document.querySelectorAll("nav button").forEach(b => b.addEventListener("click",
 function haptic(kind){ try { if (tg && tg.HapticFeedback) kind ? tg.HapticFeedback.notificationOccurred(kind) : tg.HapticFeedback.selectionChanged(); } catch (e) {} }
 function notify(t){ if (tg && tg.showAlert && tg.platform !== "unknown") tg.showAlert(t); else $("l-sum").placeholder = t; }
 
-renderSell(); calc(); renderLog();
+renderSell(); calc(); renderLog(); renderChk(); renderFish();
 load("verify", v => { if (v && typeof v === "object") { verify = v; renderSell(); } });
 load("pins", v => { if (Array.isArray(v)) { pins = v; drawPins(); } });
+load("check", v => { if (v && typeof v === "object") checked = v; renderChk(); });
+load("fish", v => { if (Array.isArray(v)) fishes = v; renderFish(); });
 load("log", v => { if (Array.isArray(v)) { log = v; renderLog(); } });
 load("calc", v => { if (v) { $("c-nug").value = v.n || ""; $("c-pc").value = v.p || ""; $("p-dust").value = v.d || ""; $("p-w").value = v.w || ""; $("p-prec").value = v.pr || ""; $("p-aqua").value = v.a || ""; calc(); } calcReady = true; });
 })();
