@@ -7,27 +7,26 @@
 <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Rubik:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 /* Мини-приложение Telegram: справочник по экономике DISTRICT 9 RP.
-   Цвета берутся из темы Telegram (--tg-theme-*), запасные — для обычного браузера. */
+   Тема «Пустошь»: всегда тёмная — асфальт, ржавчина как на аватарке, токсично-зелёный цвет заражения,
+   жёлто-чёрная полоса опасной зоны. От темы Telegram не зависит. */
 :root{
-  --bg: var(--tg-theme-bg-color, #f4f1ec);
-  --bg2: var(--tg-theme-secondary-bg-color, #e9e4dc);
-  --fg: var(--tg-theme-text-color, #1c1b19);
-  --muted: var(--tg-theme-hint-color, #7a756c);
-  --link: var(--tg-theme-link-color, #b4561f);
-  --btn: var(--tg-theme-button-color, #c2611f);
-  --btn-fg: var(--tg-theme-button-text-color, #ffffff);
-  --line: color-mix(in srgb, var(--fg) 12%, transparent);
-  --ok: #3f9a5c; --warn: #c4881b;
-  --city:#3a7bd5; --bastion:#b4561f; --hill:#7a5bc7; --waste:#6b7a3a;
-  --font: -apple-system, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
+  --bg:#0b0d0b; --bg2:#141814; --bg3:#1c211c; --line:#2b332b;
+  --fg:#e7e4d6; --muted:#8f9889;
+  --rust:#d0661f; --rust-hi:#f08a3c; --rust-lo:#7a3410;
+  --tox:#9bd23c; --hazard:#e3b23a; --blood:#c0322a;
+  --link:var(--rust-hi); --btn:var(--rust); --btn-fg:#150b04;
+  --ok:var(--tox); --warn:var(--hazard);
+  --city:#3a7bd5; --bastion:#c25a1f; --hill:#7a5bc7; --waste:#5f7a2e;
+  --font:"Rubik", -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+  --display:"Russo One", "Rubik", "Arial Black", sans-serif;
   --mono: ui-monospace, "SF Mono", Consolas, monospace;
-}
-@media (prefers-color-scheme: dark){
-  :root:not(.tg){ --bg:#17181a; --bg2:#212327; --fg:#ece8e1; --muted:#9a948a; --link:#e08a4f; --btn:#d0702c; color-scheme:dark }
+  color-scheme:dark;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 var(--font)}
@@ -107,6 +106,69 @@ details.card[open] summary::after{content:"－"}
 dl{margin:4px 0 0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:14px}
 dt{color:var(--muted)}dd{margin:0}
 :focus-visible{outline:2px solid var(--btn);outline-offset:2px}
+
+/* ===================== ТЕМА «ПУСТОШЬ» ===================== */
+html{background:var(--bg)}
+body{
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(208,102,31,.16), transparent 60%),
+    radial-gradient(80% 50% at 100% 100%, rgba(155,210,60,.06), transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg fill='none' stroke='%23e7e4d6' stroke-opacity='.035' stroke-width='1'%3E%3Cpath d='M20 120c20-40 60-60 100-50s70 50 100 40'/%3E%3Cpath d='M0 160c30-30 70-40 110-30s80 40 130 20'/%3E%3Cpath d='M10 70c40-30 90-30 130-10s70 20 100 0'/%3E%3Cpath d='M0 210c40-20 80-20 120-5s80 15 120-5'/%3E%3C/g%3E%3C/svg%3E"),
+    var(--bg);
+  background-attachment:fixed;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:calc(4px + env(safe-area-inset-top,0px));z-index:20;
+  background:repeating-linear-gradient(-45deg,var(--hazard) 0 10px,#0b0d0b 10px 20px);opacity:.9}
+.wrap{padding-top:calc(16px + env(safe-area-inset-top,0px))}
+h1{font-family:var(--display);font-weight:400;font-size:24px;letter-spacing:.02em;color:var(--fg);text-transform:uppercase;
+  text-shadow:0 2px 0 rgba(0,0,0,.6)}
+h1::after{content:"";display:block;width:44px;height:3px;margin-top:6px;background:linear-gradient(90deg,var(--rust),var(--rust-hi));border-radius:2px}
+h2{font-family:var(--display);font-weight:400;color:var(--rust-hi);letter-spacing:.08em}
+.sub{color:var(--muted)}
+.card{background:linear-gradient(180deg,#171c17,#121612);border:1px solid var(--line);border-radius:10px;box-shadow:0 1px 0 rgba(255,255,255,.03) inset,0 8px 18px -12px rgba(0,0,0,.8)}
+.card .t{font-family:var(--font);font-weight:700}
+.search{background:linear-gradient(var(--bg) 70%,transparent)}
+.search input,label.f input,label.f select{background:var(--bg3);border:1px solid var(--line);color:var(--fg)}
+.search input:focus,label.f input:focus,label.f select:focus{border-color:var(--rust);box-shadow:0 0 0 3px rgba(208,102,31,.18);outline:none}
+.search input::placeholder,label.f input::placeholder{color:#5f685c}
+.chip{background:var(--bg3);border:1px solid var(--line);color:var(--fg)}
+.chip[aria-pressed="true"]{background:var(--rust);border-color:var(--rust);color:var(--btn-fg);font-weight:600}
+.btn{background:linear-gradient(180deg,var(--rust-hi),var(--rust));color:var(--btn-fg);font-family:var(--display);font-weight:400;
+  letter-spacing:.06em;text-transform:uppercase;border-radius:8px;box-shadow:0 0 0 1px var(--rust-lo) inset,0 6px 16px -8px rgba(208,102,31,.6)}
+.btn.ghost{background:var(--bg3);color:var(--fg);box-shadow:0 0 0 1px var(--line) inset}
+.it,.vbtns button,.spot,.irow img,.it img{background:var(--bg3)}
+.it{border:1px solid var(--line)}
+.vbtns button{border:1px solid var(--line);color:var(--fg)}
+.vbtns button[aria-pressed="true"]{background:var(--rust);color:var(--btn-fg);border-color:var(--rust)}
+.spot{border:1px solid var(--line);color:var(--rust-hi)}
+.spot.off{color:var(--muted)}
+.big{font-family:var(--display);font-weight:400;color:var(--tox);text-shadow:0 0 18px rgba(155,210,60,.25)}
+.conf.wiki{color:var(--tox);border-color:rgba(155,210,60,.4)}
+.conf.guess{color:var(--hazard);border-color:rgba(227,178,58,.4)}
+.conf.mine{background:var(--tox);color:#0b0d0b;font-weight:700}
+.conf.no{background:var(--blood)}
+.loc{border-radius:4px;letter-spacing:.02em;box-shadow:0 0 0 1px rgba(0,0,0,.4) inset}
+.warnbox{border-left:3px solid var(--hazard);background:rgba(227,178,58,.08);color:var(--fg)}
+details.card summary::after{color:var(--rust-hi)}
+.tbl td{border-top-color:var(--line)}
+.log-item{border-bottom-color:var(--line)}
+nav{background:rgba(10,12,10,.94);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-top:1px solid var(--line)}
+nav button{position:relative;color:#6f786b;font-family:var(--font);font-weight:500}
+nav button[aria-selected="true"]{color:var(--rust-hi)}
+nav button[aria-selected="true"]::before{content:"";position:absolute;top:0;left:25%;right:25%;height:2px;border-radius:0 0 2px 2px;
+  background:var(--rust-hi);box-shadow:0 0 10px var(--rust)}
+.mapbox{border:1px solid var(--line);background:#070807}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#1a1f1a;color:var(--fg);box-shadow:0 6px 20px rgba(0,0,0,.7)}
+.leaflet-popup-content-wrapper{border:1px solid var(--rust);border-radius:8px}
+.leaflet-popup-content a{color:var(--rust-hi)}
+.leaflet-container a.leaflet-popup-close-button{color:var(--muted)}
+.leaflet-bar a,.leaflet-control-layers{background:#161b16;color:var(--fg);border-color:var(--line)}
+.leaflet-control-layers-expanded{color:var(--fg)}
+.leaflet-control-attribution{background:rgba(10,12,10,.8)!important;color:var(--muted)}
+.leaflet-control-attribution a{color:var(--muted)}
+input[type=checkbox]{accent-color:var(--rust)}
+::selection{background:rgba(208,102,31,.4)}
+@media (prefers-reduced-motion:no-preference){.chip,.btn,nav button,.spot,.vbtns button{transition:background .15s,color .15s,border-color .15s}}
 </style>
 </head>
 <body>
@@ -278,7 +340,7 @@ dt{color:var(--muted)}dd{margin:0}
 <script>
 (() => {
 const tg = window.Telegram && window.Telegram.WebApp;
-if (tg && tg.initData !== undefined && tg.platform !== "unknown") { document.documentElement.classList.add("tg"); tg.ready(); tg.expand(); }
+if (tg && tg.initData !== undefined && tg.platform !== "unknown") { document.documentElement.classList.add("tg"); tg.ready(); tg.expand(); try { tg.setHeaderColor("#0b0d0b"); tg.setBackgroundColor("#0b0d0b"); tg.setBottomBarColor && tg.setBottomBarColor("#0a0c0a"); } catch (e) {} }
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const money = v => "$" + Math.round(v).toLocaleString("ru-RU");
