@@ -57,6 +57,8 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
 .vbtns{display:flex;gap:6px;flex-wrap:wrap}
 .vbtns button{border:0;border-radius:8px;padding:5px 9px;font-size:12px;background:var(--bg);cursor:pointer}
 .vbtns button[aria-pressed="true"]{background:var(--btn);color:var(--btn-fg)}
+.spot{border:0;border-radius:8px;padding:2px 8px;font-size:12px;background:var(--bg);color:var(--link);cursor:pointer;margin-left:auto;white-space:nowrap}
+.spot.off{color:var(--muted)}
 .bhead{display:flex;align-items:center;gap:8px;justify-content:space-between}
 .mapbox{height:60vh;min-height:300px;border-radius:14px;overflow:hidden;background:#0d0f12}
 .pin{width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #000}
@@ -94,6 +96,9 @@ nav button[aria-selected="true"]{color:var(--btn)}
 .tbl code{font-size:12px;overflow-wrap:anywhere}
 .it{min-width:0;max-width:100%}
 .warnbox{border-left:3px solid var(--warn);padding:6px 10px;background:var(--bg);border-radius:6px;font-size:13px}
+details.card summary{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+details.card summary .bhead{justify-content:flex-start;flex:1 1 auto;min-width:0}
+details.card summary .spot{margin-left:auto}
 details.card summary{font-weight:600;cursor:pointer;list-style:none;display:flex;justify-content:space-between}
 details.card summary::after{content:"＋";color:var(--muted)}
 details.card[open] summary::after{content:"－"}
@@ -372,7 +377,15 @@ const JOBS = [
 const norm = s => s.toLowerCase().replace(/ё/g, "е").trim();
 let sellMode = "items";
 let verify = {};              // id предмета → "yes" | "no" (проверено игроком)
-const buyerLine = k => { const B = BUYERS[k]; return `<div><i class="loc l-${B.l}">${LOC[B.l]}</i><span>${esc(B.n)}${B.w ? ` <span class="note">· ${esc(B.w)}</span>` : ""}</span></div>`; };
+const spotBtn = k => {
+  const B = BUYERS[k]; if (B.l === "market" || B.l === "npc") return "";
+  const sp = buyerSpot(k);
+  return sp ? `<button class="spot" data-buyer="${k}">📍 ${esc(sp.src)}</button>` : `<button class="spot off" data-buyer="${k}">📍 не отмечен</button>`;
+};
+const buyerLine = k => {
+  const B = BUYERS[k], btn = spotBtn(k);
+  return `<div style="flex-wrap:wrap"><i class="loc l-${B.l}">${LOC[B.l]}</i><span>${esc(B.n)}${B.w ? ` <span class="note">· ${esc(B.w)}</span>` : ""}</span>${btn}</div>`;
+};
 function badge(i){
   const v = verify[i.id];
   if (v === "yes") return `<span class="conf mine">проверено ✓</span>`;
@@ -389,7 +402,7 @@ function itemCard(i){
     <div class="note">${esc(i.note)}</div>${sharedLine(i)}</div>
     ${i.b[0] !== "none" ? `<div class="vbtns" data-id="${i.id}"><span class="note" style="align-self:center">Проверил в игре:</span>
       <button data-v="yes" aria-pressed="${v === "yes"}">Берёт</button><button data-v="no" aria-pressed="${v === "no"}">Не берёт</button>
-      ${i.b.some(k => ["hill","bastion"].includes(BUYERS[k].l)) ? `<button data-map="${BUYERS[i.b.find(k => ["hill","bastion"].includes(BUYERS[k].l))].l}">На карте</button>` : ""}</div>` : ""}
+      </div>` : ""}
   </div>`;
 }
 function renderSell(){
@@ -399,7 +412,7 @@ function renderSell(){
     ITEMS.forEach(i => i.b.forEach(k => (by[k] = by[k] || []).push(i)));
     const order = ["city","hill","bastion","waste","market","npc"];
     const keys = Object.keys(BUYERS).filter(k => by[k]).sort((a, b) => order.indexOf(BUYERS[a].l) - order.indexOf(BUYERS[b].l));
-    $("results").innerHTML = keys.map(k => `<details class="card"><summary><span class="bhead"><i class="loc l-${BUYERS[k].l}">${LOC[BUYERS[k].l]}</i> ${esc(BUYERS[k].n)} <span class="note">· ${by[k].length}</span></span></summary>
+    $("results").innerHTML = keys.map(k => `<details class="card"><summary><span class="bhead"><i class="loc l-${BUYERS[k].l}">${LOC[BUYERS[k].l]}</i> ${esc(BUYERS[k].n)} <span class="note">· ${by[k].length}</span></span>${spotBtn(k)}</summary>
       <div class="items" style="margin-top:8px">${by[k].map(i => it(i.id, esc(i.n), verify[i.id] === "yes" ? "✓" : verify[i.id] === "no" ? "✗" : (i.c === "guess" ? "?" : ""))).join("")}</div></details>`).join("");
     return;
   }
@@ -413,8 +426,8 @@ $("q").addEventListener("input", renderSell);
 $("mode-items").addEventListener("click", () => { sellMode = "items"; $("mode-items").setAttribute("aria-pressed", true); $("mode-buyers").setAttribute("aria-pressed", false); renderSell(); haptic(); });
 $("mode-buyers").addEventListener("click", () => { sellMode = "buyers"; $("q").value = ""; $("mode-buyers").setAttribute("aria-pressed", true); $("mode-items").setAttribute("aria-pressed", false); renderSell(); haptic(); });
 $("results").addEventListener("click", e => {
-  const m = e.target.closest("[data-map]");
-  if (m) { show("map"); focusSettlement(m.dataset.map); return; }
+  const sb_ = e.target.closest("[data-buyer]");
+  if (sb_) { e.preventDefault(); show("map"); focusBuyer(sb_.dataset.buyer); return; }
   const b = e.target.closest(".vbtns button[data-v]"); if (!b) return;
   const id = +b.parentElement.dataset.id;
   verify[id] = verify[id] === b.dataset.v ? undefined : b.dataset.v;
@@ -725,6 +738,33 @@ function initMap(){
   map.fitBounds(L.latLngBounds(toLL(-3600, -3800), toLL(4200, 7800)));
   map.on("click", e => { if (!addMode) return; pendingLL = e.latlng; openPinForm(); });
   drawPins(); drawSharedPins();
+}
+/* Где стоит скупщик: своя метка → метки игроков (где их гуще) → поселение → примерное место. */
+const BUYER_DEFAULT = {city_fish:{x:-790, y:-1470, src:"примерно, у аренды лодок"}};
+function buyerSpot(k){
+  const own = pins.filter(p => p.b === k);
+  if (own.length) { const p = own[own.length - 1]; return {x:p.x, y:p.y, src:"твоя метка"}; }
+  const sp = shared.pins.filter(r => r.kind === k);
+  if (sp.length) {
+    let best = sp[0], bn = 0;
+    sp.forEach(a => { const n = sp.filter(b => Math.hypot(a.x - b.x, a.y - b.y) < 150).length; if (n > bn) { bn = n; best = a; } });
+    return {x:best.x, y:best.y, src:`метки игроков: ${bn}`};
+  }
+  const B = BUYERS[k];
+  if (B.l === "hill" || B.l === "bastion") { const p = PLACES.find(p => p.k === B.l); return {x:p.x, y:p.y, src:"в поселении"}; }
+  return BUYER_DEFAULT[k] || null;
+}
+let spotMarker = null;
+function focusBuyer(k){
+  setTimeout(() => {
+    initMap(); if (!map) return;
+    const B = BUYERS[k], sp = buyerSpot(k);
+    if (spotMarker) { spotMarker.remove(); spotMarker = null; }
+    if (!sp) { $("m-hint").textContent = `«${B.n}» ещё никто не отметил. Найди его в игре (жёлтый $ на карте), нажми «＋ Метка», ткни в это место и выбери «${B.n}».`; return; }
+    $("m-hint").textContent = `${B.n} — ${sp.src}.`;
+    spotMarker = L.marker(toLL(sp.x, sp.y), {icon:dot("#ffffff", 22), zIndexOffset:1000}).addTo(map).bindPopup(`<b>${esc(B.n)}</b><br>${esc(sp.src)}`);
+    map.setView(toLL(sp.x, sp.y), 5); spotMarker.openPopup();
+  }, 60);
 }
 function focusSettlement(k){
   setTimeout(() => { initMap(); if (!map) return; const p = PLACES.find(p => p.k === k); if (p) { map.setView(toLL(p.x, p.y), 4.5); p.m.openPopup(); } }, 60);
