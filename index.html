@@ -69,6 +69,18 @@ nav button[aria-selected="true"]{color:var(--btn)}
 [hidden]{display:none!important}
 .legend{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:12px;color:var(--muted)}
 .legend span{display:flex;gap:5px;align-items:center}
+.items{display:flex;flex-wrap:wrap;gap:6px}
+.it{display:flex;align-items:center;gap:6px;background:var(--bg);border-radius:10px;padding:4px 9px 4px 4px;font-size:13px}
+.it img{width:34px;height:34px;object-fit:contain;border-radius:7px;background:#1f2226}
+.it b{font-weight:600}
+.gtxt{margin:0;font-size:14px}
+.gtxt+.gtxt{margin-top:2px}
+.tbl{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+.tbl td{padding:6px 4px;border-top:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
+.tbl td:first-child{width:36%;font-weight:600}
+.tbl code{font-size:12px;overflow-wrap:anywhere}
+.it{min-width:0;max-width:100%}
+.warnbox{border-left:3px solid var(--warn);padding:6px 10px;background:var(--bg);border-radius:6px;font-size:13px}
 details.card summary{font-weight:600;cursor:pointer;list-style:none;display:flex;justify-content:space-between}
 details.card summary::after{content:"＋";color:var(--muted)}
 details.card[open] summary::after{content:"－"}
@@ -150,35 +162,20 @@ dt{color:var(--muted)}dd{margin:0}
   <div class="card" id="log-list"></div>
 </section>
 
-<!-- ======================= ИНФО ======================= -->
+<!-- ======================= ГАЙД ======================= -->
 <section id="v-info" class="wrap" hidden>
-  <div><h1>Полезное</h1><p class="sub">DISTRICT 9 RP — GTA 5 на RAGE MP: защищённый город и Пустошь с зомби.</p></div>
-  <div class="card">
-    <div class="t">Подарок за онлайн</div>
-    <p class="note" style="margin:0">Каждые 4 часа в игре. Забирать в «M → Призы». Внутри одна случайная награда: $1 000–15 000, 100–1 500 фишек, 19–150 DC, одежда, маски, патроны, детали и оружие.</p>
-  </div>
-  <div class="card">
-    <div class="t">Рыбалка</div>
-    <p class="note" style="margin:0">В планшете есть приложение «Рыбалка»: журнал рыб, текущий клёв и наценки скупщика. Наценка меняется каждый час, так что продавай, когда она высокая. Клёв зависит от погоды, давления, времени суток, наживки и снастей. Крупная рыба водится глубже.</p>
-  </div>
-  <div class="card">
-    <div class="t">Пустошь: ключи и бункеры</div>
-    <p class="note" style="margin:0">Ключи от укреплённых ящиков выпадают с зомби. Карты бункеров: красная — Форт Занкудо, зелёная — Федеральная тюрьма, синяя — Human Labs. Часть лута скупщики не берут: он нужен для крафта или дорого продаётся игрокам.</p>
-  </div>
-  <div class="card">
-    <div class="t">Чего нет в вики</div>
-    <p class="note" style="margin:0">Цен (кроме золота) и точек скупщиков на карте. Отметки «по логике» — моё предположение по названиям скупщиков; проверь в игре или спроси в Discord.</p>
-  </div>
+  <div><h1>Гайд новичка</h1><p class="sub">DISTRICT 9 RP — GTA 5 на RAGE MP. Город за стеной и Пустошь с заражёнными. Картинки предметов — с вики сервера.</p></div>
+  <div class="chips" id="g-toc"></div>
+  <div id="guide" style="display:flex;flex-direction:column;gap:8px"></div>
   <div class="card">
     <div class="t">Ссылки</div>
     <div class="where">
-      <div><a href="https://d9-rp.com/ru/wiki" target="_blank" rel="noopener">Вики</a></div>
-      <div><a href="https://forum.d9-rp.com" target="_blank" rel="noopener">Форум</a></div>
-      <div><a href="https://discord.gg/4V6mSMk8PM" target="_blank" rel="noopener">Discord</a></div>
-      <div><a href="https://t.me/district9_rp" target="_blank" rel="noopener">Telegram-канал</a></div>
+      <div><a href="https://d9-rp.com/ru/how-to-play" target="_blank" rel="noopener">Как начать играть</a></div>
+      <div><a href="https://d9-rp.com/ru/wiki" target="_blank" rel="noopener">Вики</a> · <a href="https://forum.d9-rp.com" target="_blank" rel="noopener">Форум</a></div>
+      <div><a href="https://discord.gg/4V6mSMk8PM" target="_blank" rel="noopener">Discord</a> · <a href="https://t.me/district9_rp" target="_blank" rel="noopener">Telegram-канал</a></div>
     </div>
   </div>
-  <p class="note">Неофициальный справочник игрока. Данные с d9-rp.com, ноябрь 2026.</p>
+  <p class="note">Неофициальный справочник игрока. Данные и изображения предметов — d9-rp.com, ноябрь 2026. Пометка <span class="conf guess">по логике</span> — вывод из названий и описаний, в вики прямо не написано.</p>
 </section>
 
 <nav role="tablist">
@@ -186,7 +183,7 @@ dt{color:var(--muted)}dd{margin:0}
   <button data-v="jobs" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Работы</button>
   <button data-v="calc" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18 9 9h6l3 9z"/><path d="M4 18h16"/></svg>Золото</button>
   <button data-v="log" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-6"/></svg>Доход</button>
-  <button data-v="info" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>Инфо</button>
+  <button data-v="info" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M9 7h6"/></svg>Гайд</button>
 </nav>
 
 <script>
@@ -355,6 +352,78 @@ $("log-list").addEventListener("click", e => {
   const b = e.target.closest(".x"); if (!b) return;
   if (b.dataset.armed) { log = log.filter(x => x.t !== +b.dataset.t); save("log", log); renderLog(); }
   else { b.dataset.armed = "1"; b.textContent = "удалить?"; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = "×"; } }, 2500); }
+});
+
+/* ===================== ГАЙД ===================== */
+const IMG = id => `https://d9-rp.com/items/${id}.webp`;
+const it = (id, name, extra) => `<span class="it"><img src="${IMG(id)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'"><span><b>${name}</b>${extra ? ` <span class="note">${extra}</span>` : ""}</span></span>`;
+const P = t => `<p class="gtxt">${t}</p>`;
+const G = s => `<span class="conf guess">по логике</span>`;
+const GUIDE = [
+ {id:"start", t:"1. Первые шаги", h:
+  P("<b>Что нужно:</b> лицензионная GTA V Legacy, чистая, без модов. Минимум: 4 ГБ ОЗУ и видеокарта на 1 ГБ, лучше 8 ГБ ОЗУ и GTX 660. Место: 125 ГБ, желательно SSD. Ставишь лаунчер с сайта и заходишь.")+
+  P("<b>Мир:</b> Лос-Сантос — защищённый город за стеной: работа, бизнесы, госфракции. За стеной Пустошь: заражённые, животные, бандиты и группировки.")+
+  P("<b>Подарок за онлайн</b> раз в 4 часа: M → Призы. Внутри может быть до $15 000, фишки, DC, одежда, патроны и даже оружие.")+
+  `<div class="warnbox">Мой совет, как начать: сначала заработай в городе (стройка платит сразу за каждую доставку), потом купи удочку или металлоискатель, и только с аптечками, водой и оружием иди в Пустошь.</div>`},
+ {id:"surv", t:"2. Выживание в Пустоши", h:
+  P("<b>Еда и вода</b>")+`<div class="items">${it(34,"Бутылка воды")}${it(60,"Консерва")}${it(132,"Сухпай","очень питательный")}${it(59,"Грязная вода","лучше не пить")}</div>`+
+  P("<b>Лечение и броня</b>")+`<div class="items">${it(25,"Пластырь")}${it(24,"Аптечка")}${it(27,"Большая аптечка")}${it(3,"Бронежилет")}${it(284,"Бронепластина","ставится в бронежилет")}</div>`+
+  P("<b>Заражение.</b> Укусы и царапины заражённых заражают быстро. Сыворотка полностью снимает заражение, а CV-SAVE показывает, есть ли вирус в крови.")+
+  `<div class="items">${it(319,"Сыворотка")}${it(196,"CV-SAVE","тест на вирус")}</div>`+
+  P("<b>Страх.</b> В игре есть уровень страха. Успокоитель снижает его на 30%, бета-блокатор убирает дрожь и сердцебиение.")+
+  `<div class="items">${it(318,"Успокоитель","−30% страха")}${it(251,"Бета-блокатор")}</div>`+
+  P("<b>Запах.</b> С нейтрализатором заражённые гораздо хуже тебя чуют. Пригодится, чтобы пройти мимо орды.")+
+  `<div class="items">${it(193,"Нейтрализатор запаха")}</div>`+
+  `<div class="warnbox"><b>Противогаз.</b> В вики есть только «Старый противогаз», и про него прямо написано: давно непригоден, можно продать скупщику. Рабочего противогаза для входа в зону в вики нет. Если в игре что-то требует противогаз, пришли скриншот — допишу.</div>`+
+  `<div class="items">${it(194,"Старый противогаз","хлам, на продажу")}</div>`},
+ {id:"craft", t:"3. Что брать с зомби", h:
+  P("С заражённых падают компоненты для полезных препаратов:")+
+  `<table class="tbl"><tr><td>${it(315,"Реагент")}</td><td>с мутантов, которые ослепляют. Нужен для нейтрализатора запаха</td></tr>
+   <tr><td>${it(316,"Поражённая плоть")}</td><td>со взрывающегося зомби. Из неё делают сыворотку</td></tr>
+   <tr><td>${it(317,"Мутировавший нерв")}</td><td>для успокоителя</td></tr>
+   <tr><td>${it(309,"Рука зомби")}</td><td>назначение в вики не указано</td></tr></table>`+
+  P("Навык <b>«Обыск заражённых»</b> ускоряет обыск и даёт больше предметов. С зомби также падают «портфели», которые можно обыскать.")+
+  P("Где и как крафтить, вики не пишет.")},
+ {id:"loot", t:"4. Ящики, ключи и бункеры", h:
+  `<table class="tbl">
+   <tr><td>Обычные ящики</td><td>открываются без всего</td></tr>
+   <tr><td>${it(346,"Военный ящик")}</td><td>нужен <b>ключ от военного ящика</b>. Он выпадает с <b>заражённых военных</b>. Внутри ценный лут и военные припасы</td></tr>
+   <tr><td>${it(289,"Красная карта")}</td><td>бункер <b>Форт Занкудо</b></td></tr>
+   <tr><td>${it(287,"Зелёная карта")}</td><td>бункер <b>Федеральная тюрьма</b></td></tr>
+   <tr><td>${it(288,"Синяя карта")}</td><td>бункер <b>Human Labs</b></td></tr></table>`+
+  P("Ключ-карты открывают лифты бункеров. Находят их в Пустоши, в том числе на зомби.")+
+  P("Часть лута скупщики не берут: это компоненты для крафта или вещи, которые дорого продаются игрокам. Прежде чем сдавать, загляни во вкладку «Скупщики».")+
+  `<div class="items">${it(292,"Старинный ключ","для чего — неизвестно")}${it(148,"Отмычка")}${it(121,"Ржавые ключи","хлам")}</div>`},
+ {id:"guns", t:"5. Оружие и патроны", h:
+  `<table class="tbl">
+   <tr><td>Пистолеты</td><td><div class="items">${it(44,"Pistol")}${it(20,"Combat Pistol")}${it(46,"Pistol .50")}</div>Патроны <b>9mm</b>. Самооборона в городе, запасное оружие.</td></tr>
+   <tr><td>Дробовики</td><td><div class="items">${it(21,"Pump Shotgun")}${it(96,"Double Barrel","огромный урон, мало патронов")}${it(49,"Sawed-Off")}</div>Патроны <b>12mm</b>. Ближний бой, зомби вплотную ${G()}.</td></tr>
+   <tr><td>Пистолеты-пулемёты</td><td><div class="items">${it(47,"Micro SMG")}${it(48,"SMG")}${it(88,"Combat PDW")}</div>Калибр в вики не указан.</td></tr>
+   <tr><td>Автоматы</td><td><div class="items">${it(50,"Assault Rifle")}${it(22,"Carbine Rifle")}${it(51,"Bullpup Rifle")}</div>Патроны <b>5.56mm</b>. Основное оружие для Пустоши.</td></tr>
+   <tr><td>Снайперские</td><td><div class="items">${it(234,"Sniper Rifle")}${it(233,"Precision Rifle")}${it(109,"Marksman Rifle")}${it(107,"Heavy Sniper","пробивает броню")}</div>Патроны <b>7.62mm</b>.</td></tr>
+   <tr><td>Ближний бой</td><td><div class="items">${it(43,"Нож")}${it(41,"Бита")}${it(70,"Топор")}</div>Без патронов, тихо.</td></tr></table>`+
+  P("<b>Для охоты</b> есть отдельные патроны — <b>Охотничьи 7.62mm</b>. Шкура тем лучше, чем меньше выстрелов и урона и если калибр подходит для охоты. Бери снайперскую или Precision Rifle с охотничьими патронами и бей с одного выстрела " + G() + ".")+
+  `<div class="items">${it(235,"Охотничьи патроны 7.62mm")}${it(39,"Патроны 7.62mm")}${it(40,"Патроны 5.56mm")}${it(38,"Патроны 12mm")}${it(37,"Патроны 9mm")}</div>`+
+  P("<b>Модули:</b> глушители, фонарики, прицелы (от коллиматора до снайперского), расширенные магазины и барабаны.")+
+  `<div class="items">${it(323,"Глушитель")}${it(330,"Коллиматор")}${it(333,"Снайперский прицел")}${it(337,"Магазин расширенный")}</div>`+
+  P("<b>Где взять:</b> оружейные Ammu-Nation (Пиллбокс-Хилл, Чумаш, Сайперс-Флэтс), подарок за онлайн, лут. Есть детали оружия — корпуса, приклады, дула, пружины, — видимо, для сборки " + G() + ".")+
+  `<div class="items">${it(156,"Корпус автомата")}${it(157,"Приклад")}${it(158,"Дуло")}${it(162,"Пружина")}</div>`},
+ {id:"factions", t:"6. Группировки Пустоши", h:
+  P("За стеной выжили несколько групп: <b>Адепты, Пропащие, Рейдеры, Содружество, Стрелки, Юнитологи</b>. У каждой есть страница с лором в вики. Кто из них нападает на игроков, вики не пишет — осторожнее с незнакомцами.")},
+ {id:"fix", t:"7. Если игра не запускается", h:
+  `<table class="tbl">
+   <tr><td>Не та папка GTA</td><td>в <code>CitizenFX.ini</code> поправь строку <code>IVPath</code> на папку с GTA5.exe</td></tr>
+   <tr><td>Сессия истекла</td><td>закрой всё, очисти <code>%localappdata%\\DigitalEntitlements</code>, войди в Rockstar Launcher заново</td></tr>
+   <tr><td>Нет VCRUNTIME140.dll</td><td>поставь Microsoft Visual C++ 2015–2022 (x64 и x86)</td></tr>
+   <tr><td>Ошибка 506</td><td>разреши Launcher.exe от Rockstar в брандмауэре</td></tr>
+   <tr><td>Антивирус удалил файлы</td><td>верни их из карантина, добавь папку в исключения, переустанови лаунчер</td></tr>
+   <tr><td>Не помогло</td><td>напиши в поддержку в Discord: описание, скриншот ошибки, что делал</td></tr></table>`},
+];
+$("g-toc").innerHTML = GUIDE.map(g => `<button class="chip" data-g="${g.id}">${g.t.replace(/^\d+\.\s*/, "")}</button>`).join("");
+$("guide").innerHTML = GUIDE.map((g, i) => `<details class="card" id="g-${g.id}"${i === 0 ? " open" : ""}><summary>${g.t}</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">${g.h}</div></details>`).join("");
+$("g-toc").addEventListener("click", e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  const d = $("g-" + b.dataset.g); d.open = true; d.scrollIntoView({behavior:"smooth", block:"start"}); haptic();
 });
 
 /* ===================== НАВИГАЦИЯ ===================== */
