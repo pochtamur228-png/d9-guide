@@ -118,7 +118,8 @@ dt{color:var(--muted)}dd{margin:0}
   <div class="legend">
     <span><i class="loc l-city">Город</i></span><span><i class="loc l-bastion">Бастион Занкудо</i></span>
     <span><i class="loc l-hill">Холм спасения</i></span><span><i class="loc l-waste">Пустошь</i></span>
-    <span><i class="conf wiki">по вики</i></span><span><i class="conf guess">по логике</i></span><span><i class="conf mine">проверено</i></span>
+    <span><i class="conf wiki">по вики</i></span><span><i class="conf guess">по логике</i></span><span><i class="conf mine">проверено</i></span></div>
+  <p class="note shared-status" style="margin:0"></p><div style="display:none">
   </div>
   <div id="results" style="display:flex;flex-direction:column;gap:8px"></div>
 </section>
@@ -138,9 +139,11 @@ dt{color:var(--muted)}dd{margin:0}
     <div class="t">Что здесь?</div>
     <label class="f" for="pin-b">Скупщик или место<select id="pin-b"></select></label>
     <label class="f" for="pin-n">Заметка<input id="pin-n" type="text" placeholder="у ворот, берёт часы"></label>
+    <label class="row" for="pin-share" style="justify-content:flex-start;gap:8px"><input type="checkbox" id="pin-share" checked style="width:18px;height:18px;accent-color:var(--btn)"><span class="note">Показать метку всем игрокам</span></label>
     <div class="grid2"><button class="btn" id="pin-save">Сохранить</button><button class="btn ghost" id="pin-cancel">Отмена</button></div>
   </div>
   <div class="card" id="pins-list"></div>
+  <p class="note shared-status" style="margin:0"></p>
 </section>
 
 <!-- ======================= РАБОТЫ ======================= -->
@@ -210,10 +213,14 @@ dt{color:var(--muted)}dd{margin:0}
     </div>
     <datalist id="item-names"></datalist>
     <label class="f" for="l-note">Заметка<input id="l-note" type="text" placeholder="скупщик у Форта Занкудо"></label>
+    <label class="row" for="l-share" style="justify-content:flex-start;gap:8px"><input type="checkbox" id="l-share" checked style="width:18px;height:18px;accent-color:var(--btn)"><span class="note">Поделиться ценой за штуку с другими игроками (без суммы и заметки)</span></label>
     <button class="btn" id="l-add">Записать</button>
   </div>
   <h2>Мои цены</h2>
   <div class="card" id="my-prices"></div>
+  <h2>Цены игроков за 30 дней</h2>
+  <div class="card" id="shared-prices"></div>
+  <p class="note shared-status" style="margin:0"></p>
   <h2>По источникам за 7 дней</h2>
   <div class="card" id="by-src"></div>
   <h2>Последние записи</h2>
@@ -359,6 +366,7 @@ function badge(i){
   const v = verify[i.id];
   if (v === "yes") return `<span class="conf mine">проверено ✓</span>`;
   if (v === "no") return `<span class="conf no">не берёт ✗</span>`;
+  const sbadge = sharedBadge(i); if (sbadge) return sbadge;
   return `<span class="conf ${i.c}">${i.c === "wiki" ? "по вики" : "по логике"}</span>`;
 }
 function itemCard(i){
@@ -367,7 +375,7 @@ function itemCard(i){
     <img src="${IMG(i.id)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
     <div class="t"><span>${esc(i.n)}</span>${badge(i)}</div>
     <div class="where">${i.b.map(buyerLine).join("")}</div>
-    <div class="note">${esc(i.note)}</div></div>
+    <div class="note">${esc(i.note)}</div>${sharedLine(i)}</div>
     ${i.b[0] !== "none" ? `<div class="vbtns" data-id="${i.id}"><span class="note" style="align-self:center">Проверил в игре:</span>
       <button data-v="yes" aria-pressed="${v === "yes"}">Берёт</button><button data-v="no" aria-pressed="${v === "no"}">Не берёт</button>
       ${i.b.some(k => ["hill","bastion"].includes(BUYERS[k].l)) ? `<button data-map="${BUYERS[i.b.find(k => ["hill","bastion"].includes(BUYERS[k].l))].l}">На карте</button>` : ""}</div>` : ""}
@@ -400,7 +408,12 @@ $("results").addEventListener("click", e => {
   const id = +b.parentElement.dataset.id;
   verify[id] = verify[id] === b.dataset.v ? undefined : b.dataset.v;
   if (!verify[id]) delete verify[id];
-  save("verify", verify); renderSell(); haptic("success");
+  save("verify", verify);
+  if (verify[id] && !voted[id] && shared.ok) {
+    voted[id] = 1; save("voted", voted);
+    sb("votes", {item_id:id, vote:verify[id]}).then(() => { const g = (shared.votes[id] = shared.votes[id] || {yes:0, no:0}); g[verify[id]]++; renderSharedStatus(); renderSell(); }).catch(() => {});
+  }
+  renderSell(); haptic("success");
 });
 
 /* ===================== РАБОТЫ ===================== */
@@ -480,6 +493,10 @@ $("l-add").addEventListener("click", () => {
   if (!s) { $("l-sum").focus(); notify("Впиши сумму продажи"); return; }
   const itName = $("l-item").value.trim().slice(0, 40), q = Math.max(1, Math.round(num("l-qty")) || 1);
   log.push({t: Date.now(), src: $("l-src").value, s, n: $("l-note").value.trim().slice(0, 80), it: itName || undefined, q: itName ? q : undefined});
+  if (itName && $("l-share").checked && shared.ok) {
+    const unit = Math.round(s / q);
+    sb("prices", {item:itName, price:unit, qty:q}).then(() => { const k = norm(itName); const g = (shared.prices[k] = shared.prices[k] || {n:itName, list:[], q:0}); g.list.push(unit); g.q += q; shared.nPrices++; renderSharedPrices(); renderSharedStatus(); }).catch(() => {});
+  }
   $("l-item").value = ""; $("l-qty").value = "";
   if (log.length > 400) log = log.slice(-400);
   $("l-sum").value = ""; $("l-note").value = "";
@@ -663,6 +680,7 @@ const LANDMARKS = [
 const PLACE_TYPES = {kpp:"КПП", workshop:"Мастерская", quarantine:"Карантин", school:"Автошкола", breach:"Пролом в стене", fisher:"Рыбак", bench:"Верстак", zone:"Опасная зона", farm:"Хорошее место для фарма"};
 const SHOP_INFO = {mask:["#a174b3","Противогаз для КПП и заражённых зон"], gun:["#e13b3b","Оружие и патроны"], shop:["#79ce79","Металлоискатель, лопата, семена"], boat:["#65b9e7","Лодки"], car:["#f0ca57","Транспорт"]};
 const LOC_COLOR = {city:"#3a7bd5", bastion:"#b4561f", hill:"#7a5bc7", waste:"#6b7a3a", market:"#555", npc:"#555", other:"#c4881b"};
+let layersCtl = null;
 let map = null, pins = [], pinLayer = null, addMode = false, pendingLL = null;
 const toLL = (x, y) => map.unproject([CAL.ax * x + CAL.bx, CAL.ay * y + CAL.by], 7);
 const toGame = ll => { const p = map.project(ll, 7); return {x: (p.x - CAL.bx) / CAL.ax, y: (p.y - CAL.by) / CAL.ay}; };
@@ -680,10 +698,10 @@ function initMap(){
   const places = L.layerGroup(PLACES.map(p => (p.m = L.marker(toLL(p.x, p.y), {icon:dot(LOC_COLOR[p.k], 20)}).bindPopup(`<b>${p.n}</b><br>${p.d}`))));
   pinLayer = L.layerGroup().addTo(map);
   shops.addTo(map); places.addTo(map); marks.addTo(map);
-  L.control.layers({"Тёмная":dark, "Спутник":sat}, {"Поселения":places, "Бункеры и места":marks, "Магазины":shops, "Мои метки":pinLayer}, {collapsed:true}).addTo(map);
+  layersCtl = L.control.layers({"Тёмная":dark, "Спутник":sat}, {"Поселения":places, "Бункеры и места":marks, "Магазины":shops, "Мои метки":pinLayer}, {collapsed:true}).addTo(map);
   map.setView(toLL(0, 1200), 2.5);
   map.on("click", e => { if (!addMode) return; pendingLL = e.latlng; openPinForm(); });
-  drawPins();
+  drawPins(); drawSharedPins();
 }
 function focusSettlement(k){
   setTimeout(() => { initMap(); if (!map) return; const p = PLACES.find(p => p.k === k); if (p) { map.setView(toLL(p.x, p.y), 4.5); p.m.openPopup(); } }, 60);
@@ -713,7 +731,9 @@ $("m-add").addEventListener("click", () => {
 $("pin-save").addEventListener("click", () => {
   if (!pendingLL) return;
   const g = toGame(pendingLL);
-  pins.push({x:Math.round(g.x), y:Math.round(g.y), b:$("pin-b").value, n:$("pin-n").value.trim().slice(0, 60)});
+  const np = {x:Math.round(g.x), y:Math.round(g.y), b:$("pin-b").value, n:$("pin-n").value.trim().slice(0, 60)};
+  pins.push(np);
+  if ($("pin-share").checked && shared.ok) sb("pins", {x:np.x, y:np.y, kind:np.b, note:np.n || null}).then(() => { shared.pins.unshift({x:np.x, y:np.y, kind:np.b, note:np.n, created_at:new Date().toISOString()}); renderSharedStatus(); }).catch(() => {});
   save("pins", pins); drawPins();
   $("pin-form").hidden = true; addMode = false; $("m-add").setAttribute("aria-pressed", false); $("m-hint").textContent = "Метка сохранена.";
   haptic("success");
@@ -766,6 +786,69 @@ $("fish-list").addEventListener("click", e => {
   if (b.dataset.armed) { fishes = fishes.filter(f => norm(f.n) !== b.dataset.fn); save("fish", fishes); renderFish(); }
   else { b.dataset.armed = "1"; b.textContent = "удалить?"; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = "×"; } }, 2500); }
 });
+
+/* ===================== ОБЩАЯ БАЗА (Supabase) ===================== */
+/* Публичный ключ — он и задуман для кода сайта. Читать и добавлять может любой, удалять — никто. */
+const SB_URL = "https://qdywdrwjghmnfvkumwbz.supabase.co", SB_KEY = "sb_publishable_HoXSG8I8zV8D_ymVNNGLsw_sqxDtVAQ";
+async function sb(path, body){
+  const r = await fetch(SB_URL + "/rest/v1/" + path, body ? {method:"POST", headers:{apikey:SB_KEY, "Content-Type":"application/json", Prefer:"return=minimal"}, body:JSON.stringify(body)} : {headers:{apikey:SB_KEY}});
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return body ? null : r.json();
+}
+const shared = {ok:false, pins:[], votes:{}, prices:{}, nPrices:0};
+let voted = {};   // по каким предметам этот игрок уже голосовал в общей базе
+const median = a => { const b = a.slice().sort((x, y) => x - y), m = b.length >> 1; return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2; };
+async function loadShared(){
+  try {
+    const since = new Date(Date.now() - 30 * 864e5).toISOString();
+    const [pinsRows, voteRows, priceRows] = await Promise.all([
+      sb("pins?select=x,y,kind,note,created_at&order=id.desc&limit=1500"),
+      sb("votes?select=item_id,vote&item_id=gt.0&limit=20000"),
+      sb("prices?select=item,price,qty&created_at=gte." + since + "&limit=10000"),
+    ]);
+    shared.pins = pinsRows.filter(r => BUYERS[r.kind] || PLACE_TYPES[r.kind] || r.kind === "other");
+    shared.votes = {};
+    voteRows.forEach(v => { const g = (shared.votes[v.item_id] = shared.votes[v.item_id] || {yes:0, no:0}); g[v.vote]++; });
+    shared.prices = {};
+    priceRows.forEach(r => { const k = norm(r.item); const g = (shared.prices[k] = shared.prices[k] || {n:r.item, list:[], q:0}); g.list.push(r.price); g.q += r.qty || 1; });
+    shared.nPrices = priceRows.length; shared.ok = true;
+  } catch (e) { shared.ok = false; }
+  renderSharedStatus(); renderSell(); drawSharedPins(); renderSharedPrices();
+}
+function renderSharedStatus(){
+  const t = shared.ok ? `Общая база игроков: ${shared.pins.length} меток, ${Object.values(shared.votes).reduce((a, g) => a + g.yes + g.no, 0)} проверок, ${shared.nPrices} цен за 30 дней` : "Общая база недоступна — показываю только твои данные";
+  document.querySelectorAll(".shared-status").forEach(el => el.textContent = t);
+}
+function sharedLine(i){
+  const v = shared.votes[i.id], pr = shared.prices[norm(i.n)];
+  const parts = [];
+  if (v && (v.yes || v.no)) parts.push(`игроки: берёт ✓${v.yes} · не берёт ✗${v.no}`);
+  if (pr && pr.list.length) parts.push(`продают по ~${money(median(pr.list))} (${pr.list.length} прод.)`);
+  return parts.length ? `<div class="note" style="color:var(--fg)">👥 ${parts.join(" · ")}</div>` : "";
+}
+function sharedBadge(i){
+  const v = shared.votes[i.id]; if (!v) return "";
+  if (v.yes >= 3 && v.yes >= 2 * v.no) return `<span class="conf mine">подтверждено игроками</span>`;
+  if (v.no >= 3 && v.no >= 2 * v.yes) return `<span class="conf no">игроки: не берёт</span>`;
+  return "";
+}
+let sharedLayer = null;
+function drawSharedPins(){
+  if (!map || !shared.ok) return;
+  if (!sharedLayer) { sharedLayer = L.layerGroup().addTo(map); layersCtl && layersCtl.addOverlay(sharedLayer, "Метки игроков"); }
+  sharedLayer.clearLayers();
+  const mine = new Set(pins.map(p => `${p.x}|${p.y}|${p.b}`));
+  shared.pins.forEach(r => {
+    if (mine.has(`${r.x}|${r.y}|${r.kind}`)) return;
+    const B = BUYERS[r.kind], c = B ? LOC_COLOR[B.l] : LOC_COLOR.other;
+    L.marker(toLL(r.x, r.y), {icon:dot(c, 12), opacity:0.85}).bindPopup(`<b>${esc(pinName({b:r.kind}))}</b>${r.note ? "<br>" + esc(r.note) : ""}<br><span style="color:#888">метка игрока · ${new Date(r.created_at).toLocaleDateString("ru-RU")}</span>`).addTo(sharedLayer);
+  });
+}
+function renderSharedPrices(){
+  const arr = Object.values(shared.prices).filter(g => g.list.length).sort((a, b) => b.list.length - a.list.length).slice(0, 40);
+  $("shared-prices").innerHTML = arr.length ? `<div class="row note"><span>Предмет</span><span>медиана · продаж</span></div>` + arr.map(g => `<div class="row" style="padding:3px 0"><span>${esc(g.n)}</span><span class="num">${money(median(g.list))} · ${g.list.length}</span></div>`).join("")
+    : `<div class="note">${shared.ok ? "Пока никто не записал цены. Записывай продажи с названием предмета — твоя цена попадёт сюда для всех." : "Нет связи с общей базой."}</div>`;
+}
 /* ===================== НАВИГАЦИЯ ===================== */
 function show(v){
   ["sell","map","jobs","calc","log","info"].forEach(k => { $("v-" + k).hidden = k !== v; });
@@ -782,6 +865,8 @@ load("verify", v => { if (v && typeof v === "object") { verify = v; renderSell()
 load("pins", v => { if (Array.isArray(v)) { pins = v; drawPins(); } });
 load("check", v => { if (v && typeof v === "object") checked = v; renderChk(); });
 load("fish", v => { if (Array.isArray(v)) fishes = v; renderFish(); });
+load("voted", v => { if (v && typeof v === "object") voted = v; });
+loadShared();
 load("log", v => { if (Array.isArray(v)) { log = v; renderLog(); } });
 load("calc", v => { if (v) { $("c-nug").value = v.n || ""; $("c-pc").value = v.p || ""; $("p-dust").value = v.d || ""; $("p-w").value = v.w || ""; $("p-prec").value = v.pr || ""; $("p-aqua").value = v.a || ""; calc(); } calcReady = true; });
 })();
