@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>D9 Справочник</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 /* Мини-приложение Telegram: справочник по экономике DISTRICT 9 RP.
    Цвета берутся из темы Telegram (--tg-theme-*), запасные — для обычного браузера. */
@@ -48,6 +50,17 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
 .conf{font-size:11px;padding:2px 7px;border-radius:6px;white-space:nowrap}
 .conf.wiki{color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 40%,transparent)}
 .conf.guess{color:var(--warn);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent)}
+.conf.mine{color:#fff;background:var(--ok)}
+.conf.no{color:#fff;background:#c0392b}
+.irow{display:grid;grid-template-columns:48px 1fr;gap:4px 10px;align-items:start}
+.irow img{width:48px;height:48px;object-fit:contain;border-radius:10px;background:#1f2226;grid-row:span 3}
+.vbtns{display:flex;gap:6px;flex-wrap:wrap}
+.vbtns button{border:0;border-radius:8px;padding:5px 9px;font-size:12px;background:var(--bg);cursor:pointer}
+.vbtns button[aria-pressed="true"]{background:var(--btn);color:var(--btn-fg)}
+.bhead{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.mapbox{height:calc(100vh - 230px);min-height:340px;border-radius:14px;overflow:hidden;background:#0d0f12}
+.pin{width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #000}
+.leaflet-popup-content{font:13px/1.4 var(--font)}
 .note{font-size:13px;color:var(--muted)}
 .empty{color:var(--muted);text-align:center;padding:24px 8px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -98,13 +111,36 @@ dt{color:var(--muted)}dd{margin:0}
     <p class="sub">Впиши предмет — покажу скупщика и где он стоит.</p>
   </div>
   <div class="search"><input id="q" type="search" placeholder="Золотые часы, рыба, шкура…" autocomplete="off"></div>
-  <div class="chips" id="cats"></div>
+  <div class="chips" role="tablist">
+    <button class="chip" id="mode-items" aria-pressed="true">Все предметы</button>
+    <button class="chip" id="mode-buyers" aria-pressed="false">По скупщикам</button>
+  </div>
   <div class="legend">
     <span><i class="loc l-city">Город</i></span><span><i class="loc l-bastion">Бастион Занкудо</i></span>
     <span><i class="loc l-hill">Холм спасения</i></span><span><i class="loc l-waste">Пустошь</i></span>
-    <span><i class="conf wiki">по вики</i></span><span><i class="conf guess">по логике</i></span>
+    <span><i class="conf wiki">по вики</i></span><span><i class="conf guess">по логике</i></span><span><i class="conf mine">проверено</i></span>
   </div>
   <div id="results" style="display:flex;flex-direction:column;gap:8px"></div>
+</section>
+
+<!-- ======================= КАРТА ======================= -->
+<section id="v-map" class="wrap" hidden>
+  <div><h1>Карта</h1><p class="sub">Поселения и магазины — с карты сервера. Где стоят скупщики в городе и Пустоши, вики не пишет: отмечай сам.</p></div>
+  <div class="chips">
+    <button class="chip" id="m-add" aria-pressed="false">＋ Метка скупщика</button>
+    <button class="chip" data-place="hill">Холм спасения</button>
+    <button class="chip" data-place="bastion">Бастион Занкудо</button>
+    <button class="chip" data-place="city">Город</button>
+  </div>
+  <p class="note" id="m-hint" style="margin:0"></p>
+  <div id="map" class="mapbox"></div>
+  <div class="card" id="pin-form" hidden>
+    <div class="t">Кто здесь стоит?</div>
+    <label class="f" for="pin-b">Скупщик<select id="pin-b"></select></label>
+    <label class="f" for="pin-n">Заметка<input id="pin-n" type="text" placeholder="у ворот, берёт часы"></label>
+    <div class="grid2"><button class="btn" id="pin-save">Сохранить</button><button class="btn ghost" id="pin-cancel">Отмена</button></div>
+  </div>
+  <div class="card" id="pins-list"></div>
 </section>
 
 <!-- ======================= РАБОТЫ ======================= -->
@@ -180,6 +216,7 @@ dt{color:var(--muted)}dd{margin:0}
 
 <nav role="tablist">
   <button data-v="sell" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Скупщики</button>
+  <button data-v="map" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>Карта</button>
   <button data-v="jobs" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Работы</button>
   <button data-v="calc" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18 9 9h6l3 9z"/><path d="M4 18h16"/></svg>Золото</button>
   <button data-v="log" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-6"/></svg>Доход</button>
@@ -195,42 +232,79 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":
 const money = v => "$" + Math.round(v).toLocaleString("ru-RU");
 
 /* ===================== ДАННЫЕ (d9-rp.com, ноябрь 2026) ===================== */
-const LOC = {city:"Город", bastion:"Бастион Занкудо", hill:"Холм спасения", waste:"Пустошь", npc:"Отдельный NPC", market:"Игрокам"};
-// w: [локация, скупщик/место, уточнение]; c: wiki|guess
-const ITEMS = [
-  {cat:"Рыбалка", names:["Рыба","Карась","Щука","Окунь","Сом","Улов"], c:"wiki",
-   w:[["city","Скупщик рыбы","городской рынок"],["hill","Скупщик продуктов",""]],
-   note:"Цена = вес × навык «рыбак» × наценка. Наценка меняется каждый час — смотри в планшете «Рыбалка»."},
-  {cat:"Клады", names:["Старинная монета","Старинный браслет","Раритетные часы","Клад","Сокровище","Раритет"], c:"wiki",
-   w:[["city","Скупщик раритета",""],["hill","Скупщик раритета",""]],
-   note:"Клады ищут металлоискателем на западном пляже города и на пляже у Бастиона Занкудо."},
-  {cat:"Дерево", names:["Дерево","Брёвна","Бревно","Древесина"], c:"wiki",
-   w:[["city","Скупщик дерева","городской рынок"],["hill","Скупщик дерева",""]], note:"Цена зависит от навыка лесоруба."},
-  {cat:"Камень", names:["Камень","Осколки камня","Каменные осколки"], c:"wiki",
-   w:[["city","Скупщик камня","городской рынок"],["bastion","Скупщик камня",""]], note:"Цена зависит от навыка каменолома."},
-  {cat:"Апельсины", names:["Апельсин","Апельсины"], c:"wiki",
-   w:[["city","Скупщик","городской рынок"],["hill","Скупщик продуктов",""]], note:"Апельсины должны быть в инвентаре. Цена зависит от навыка сборщика."},
-  {cat:"Охота", names:["Шкура","Шкура (отличная)","Шкура (плохая)","Жир","Мясо","Клык хищника","Коготь хищника","Трофей"], c:"wiki",
-   w:[["bastion","Скупщик трофеев",""]], note:"Цены фиксированные. Качество шкуры лучше, если меньше выстрелов и подходящий калибр."},
-  {cat:"Золото", names:["Золотой самородок","Самородок","Кусочек золота","Золото"], c:"wiki",
-   w:[["hill","Скупщик золота","отдельная точка сбыта"]], note:"Самородок — вес × $16, кусочек — вес × $1000. Посчитай во вкладке «Золото»."},
-  {cat:"Золото", names:["Золотая пыль"], c:"wiki",
-   w:[["npc","Не продаётся выгодно","переработай"]], note:"10 пыли + осадитель + царская водка = 1 кусочек золота (вес × $1000)."},
-  {cat:"Урожай", names:["Урожай","Овощи","Фрукты","Продукты"], c:"wiki",
-   w:[["hill","Скупщик продуктов",""]], note:"Семена — из ящиков Пустоши или 24/7. Не дай урожаю сгнить."},
-  {cat:"Еда", names:["Уха","Рыба с овощами","Блюдо","Готовая еда"], c:"wiki",
-   w:[["bastion","Скупщик еды",""],["market","Торговая площадка","другим игрокам"]], note:"Готовят на кухне или у костра."},
-  {cat:"Украшения", names:["Золотые часы","Серебряные часы","Золотое кольцо","Серебряное кольцо","Золотая цепочка","Серебряная цепочка","Армейская цепочка","Ожерелье из бисера","Ожерелье с кулоном"], c:"guess",
-   w:[["waste","Скупщик украшений",""]], note:"Вики пишет только «можно продать скупщику». Скупщик украшений — по названию. Не путай с «Раритетными часами»."},
-  {cat:"Электроника", names:["Разбитый телефон","Кнопочный телефон","Цифровые часы","Сломанный планшет","Сломанный ноутбук","Разбитый плеер","Радиостанция","Флешка","Сломанный геймпад","Защитные наушники","Разбитый бинокль","Сломанный фотоаппарат","Сломанный фонарик"], c:"guess",
-   w:[["waste","Скупщик электроники",""]], note:"Скупщик — по названию категории, вики его прямо не называет."},
-  {cat:"Инструменты", names:["Ножницы","Ящик с инструментами","Старая дрель","Кухонный нож"], c:"guess",
-   w:[["waste","Скупщик инструментов",""]], note:"Скупщик — по названию категории."},
-  {cat:"Запчасти", names:["Старый аккумулятор"], c:"guess",
-   w:[["waste","Скупщик запчастей","или электроники"]], note:"Не очевидно, какой из двух скупщиков берёт. Тяжёлый: 4 кг."},
-  {cat:"Вещи", names:["Разбитые очки","Клюшка","Журнал","Одеяло","Тряпки","Ржавые ключи","Пустой кошелёк","Стопка бумаг","Старый противогаз","Старый паспорт"], c:"guess",
-   w:[["waste","Скупщик вещей",""]], note:"Скупщик — по названию категории."},
+const LOC = {city:"Город", bastion:"Бастион Занкудо", hill:"Холм спасения", waste:"Пустошь", npc:"Не продавать", market:"Игрокам"};
+/* Скупщики из вики (статья «Способы заработка»). */
+const BUYERS = {
+  city_fish:   {n:"Скупщик рыбы",        l:"city",    w:"городской рынок"},
+  city_rare:   {n:"Скупщик раритета",    l:"city",    w:""},
+  city_wood:   {n:"Скупщик дерева",      l:"city",    w:"городской рынок"},
+  city_stone:  {n:"Скупщик камня",       l:"city",    w:"городской рынок"},
+  city_orange: {n:"Скупщик апельсинов",  l:"city",    w:"городской рынок"},
+  bas_trophy:  {n:"Скупщик трофеев",     l:"bastion", w:""},
+  bas_food:    {n:"Скупщик еды",         l:"bastion", w:""},
+  bas_stone:   {n:"Скупщик камня",       l:"bastion", w:""},
+  hill_rare:   {n:"Скупщик раритета",    l:"hill",    w:""},
+  hill_prod:   {n:"Скупщик продуктов",   l:"hill",    w:""},
+  hill_gold:   {n:"Скупщик золота",      l:"hill",    w:""},
+  hill_wood:   {n:"Скупщик дерева",      l:"hill",    w:""},
+  w_jewel:     {n:"Скупщик украшений",   l:"waste",   w:"где-то в Пустоши"},
+  w_things:    {n:"Скупщик вещей",       l:"waste",   w:"где-то в Пустоши"},
+  w_tools:     {n:"Скупщик инструментов",l:"waste",   w:"где-то в Пустоши"},
+  w_parts:     {n:"Скупщик запчастей",   l:"waste",   w:"где-то в Пустоши"},
+  w_elec:      {n:"Скупщик электроники", l:"waste",   w:"где-то в Пустоши"},
+  w_details:   {n:"Скупщик деталей",     l:"waste",   w:"где-то в Пустоши"},
+  market:      {n:"Торговая площадка",   l:"market",  w:"другим игрокам"},
+  none:        {n:"Скупщики не берут",   l:"npc",     w:"переработай или используй"},
+};
+/* Группы предметов: [категория, скупщики, уверенность, заметка, [[id, название], …]]
+   id — номер предмета в вики, картинка: d9-rp.com/items/<id>.webp */
+const GROUPS = [
+  ["Рыбалка", ["city_fish","hill_prod"], "wiki", "Цена = вес × навык «рыбак» × наценка. Наценка меняется каждый час — смотри в планшете «Рыбалка».",
+    [[15,"Рыба"]]],
+  ["Клады", ["city_rare","hill_rare"], "guess", "Клады по вики сдаются скупщику раритета. Что эти предметы — находки металлоискателем, вывод по описаниям.",
+    [[301,"Старинная монета"],[298,"Старинный браслет"],[293,"Раритетные часы"],[296,"Старинный медальон"],[299,"Старинная зажигалка"],[297,"Туристический нож"],[291,"Монета"],[294,"Кольцо"],[295,"Часть цепочки"],[300,"Крышка от бутылки"],[292,"Старинный ключ"]]],
+  ["Коллекционное", ["city_rare","hill_rare"], "guess", "Редкие коллекционные вещи — скорее всего к скупщику раритета.",
+    [[282,"Крышка от Нюка-колы"],[283,"Статуэтка Волт-Бой"]]],
+  ["Охота", ["bas_trophy"], "wiki", "Цены фиксированные. Шкура «Отличное» дороже «Плохое»: стреляй меньше и подходящим калибром.",
+    [[213,"Шкура оленя (Отличное)"],[214,"Шкура кабана (Отличное)"],[212,"Шкура зайца (Отличное)"],[215,"Шкура койота (Отличное)"],[216,"Шкура пумы (Отличное)"],[217,"Шкура пантеры (Отличное)"],
+     [228,"Шкура оленя (Плохое)"],[229,"Шкура кабана (Плохое)"],[227,"Шкура зайца (Плохое)"],[230,"Шкура койота (Плохое)"],[231,"Шкура пумы (Плохое)"],[232,"Шкура пантеры (Плохое)"],
+     [218,"Клык хищника"],[219,"Коготь хищника"],[221,"Мясо оленя"],[222,"Мясо кабана"],[220,"Мясо зайца"],[223,"Животный жир"]]],
+  ["Золото", ["hill_gold"], "wiki", "Самородок — вес × $16, кусочек — вес × $1000. Посчитай во вкладке «Золото».",
+    [[352,"Кусочек золота"],[348,"Золотой самородок"]]],
+  ["Золото", ["none"], "wiki", "Переработай: 10 пыли + осадитель + царская водка = 1 кусочек золота (вес × $1000).",
+    [[349,"Золотая пыль"]]],
+  ["Дерево", ["city_wood","hill_wood"], "guess", "Дерево по вики сдаётся на рынок и на Холм спасения. Каким предметом оно лежит в инвентаре, вики не пишет.",
+    [[131,"Дрова"],[137,"Доска"]]],
+  ["Камень", ["city_stone","bas_stone"], "wiki", "Цена зависит от навыка каменолома.",
+    [[138,"Камень"]]],
+  ["Камень", ["city_stone","bas_stone"], "guess", "Похоже на добычу каменолома, в вики не подтверждено.",
+    [[135,"Булыжник"],[141,"Руда"]]],
+  ["Апельсины", ["city_orange","hill_prod"], "wiki", "Цена зависит от навыка сборщика.",
+    [[147,"Апельсин"]]],
+  ["Урожай", ["hill_prod"], "wiki", "Агроном сдаёт урожай скупщику продуктов на Холме спасения.",
+    [[144,"Капуста"],[143,"Тыква"],[197,"Томат"],[198,"Картошка"],[199,"Лук"],[200,"Морковка"],[237,"Виноград"],[238,"Ячмень"],[239,"Пшеница"],[245,"Тростник"],[367,"Кукуруза"]]],
+  ["Готовая еда", ["bas_food","market"], "wiki", "Повар сдаёт блюда скупщику в Бастионе Занкудо или продаёт игрокам.",
+    [[151,"Уха"],[203,"Рыба с овощами"],[142,"Жареная рыба"],[152,"Рагу"],[204,"Солянка"],[202,"Овощной суп"],[205,"Тыквенный суп"],[201,"Запеченная картошка"],[225,"Жаренное мясо оленя"],[226,"Жаренное мясо кабана"],[224,"Жаренное мясо зайца"]]],
+  ["Украшения", ["w_jewel"], "guess", "В вики: «можно продать скупщику». Скупщик украшений — по названию.",
+    [[53,"Золотые часы"],[77,"Серебряные часы"],[78,"Золотое кольцо"],[86,"Серебряное кольцо"],[92,"Золотая цепочка"],[98,"Серебряная цепочка"],[97,"Армейская цепочка"],[116,"Ожерелье из бисера"],[118,"Ожерелье с кулоном"]]],
+  ["Электроника", ["w_elec"], "guess", "В вики: «можно продать скупщику». Скупщик электроники — по названию.",
+    [[175,"Сломанный ноутбук"],[122,"Сломанный планшет"],[23,"Разбитый телефон"],[195,"Кнопочный телефон"],[124,"Сломанный фотоаппарат"],[174,"Радиостанция"],[173,"Разбитый плеер"],[45,"Цифровые часы"],[134,"Флешка"],[182,"Сломанный геймпад"],[183,"Защитные наушники"],[187,"Разбитый бинокль"],[189,"Сломанный фонарик"]]],
+  ["Электроника", ["w_parts","w_elec"], "guess", "Не очевидно, какой из двух скупщиков берёт. Тяжёлый: 4 кг.",
+    [[184,"Старый аккумулятор"]]],
+  ["Инструменты", ["w_tools"], "guess", "В вики: «можно продать скупщику». Скупщик инструментов — по названию.",
+    [[190,"Ящик с инструментами"],[191,"Старая дрель"],[133,"Ножницы"],[125,"Кухонный нож"]]],
+  ["Вещи", ["w_things"], "guess", "В вики: «можно продать скупщику». Скупщик вещей — по названию. Про очки в вики шутят, что скупщик, может, барыжит ими в магазин одежды.",
+    [[194,"Старый противогаз"],[176,"Журнал"],[177,"Клюшка"],[178,"Одеяло"],[120,"Тряпки"],[121,"Ржавые ключи"],[123,"Разбитые очки"],[181,"Пустой кошелёк"],[185,"Стопка бумаг"],[180,"Старый паспорт"]]],
+  ["Автозапчасти", ["w_parts"], "guess", "Возможно, нужны для ремонта машин, а не на продажу. Проверь в игре.",
+    [[273,"Покрышка"],[275,"Аккумулятор"],[276,"Радиатор"],[274,"Свеча зажигания"],[277,"Воздушный фильтр"],[278,"Масляный фильтр"],[279,"Электронные запчасти"],[280,"Детали двигателя"],[281,"Детали трансмиссии"],[261,"Крышка капота"],[262,"Крышка багажника"],[267,"Лобовое стекло"]]],
+  ["Детали оружия", ["w_details"], "guess", "Возможно, нужны для сборки оружия, а не на продажу. Проверь в игре.",
+    [[156,"Корпус автомата"],[157,"Приклад автомата"],[158,"Дуло автомата"],[159,"Корпус дробовика"],[160,"Приклад дробовика"],[161,"Дуло дробовика"],[163,"Корпус СМГ"],[164,"Приклад СМГ"],[165,"Дуло СМГ"],[154,"Корпус пистолета"],[155,"Крышка пистолета"],[162,"Пружина"],[153,"Металл"]]],
+  ["С зомби", ["none"], "wiki", "Компоненты для крафта: реагент → нейтрализатор запаха, поражённая плоть → сыворотка, нерв → успокоитель.",
+    [[315,"Реагент"],[316,"Поражённая плоть"],[317,"Мутировавший нерв"],[309,"Рука зомби"]]],
 ];
+const ITEMS = [];
+GROUPS.forEach(([cat, b, c, note, list]) => list.forEach(([id, n]) => ITEMS.push({id, n, cat, b, c, note})));
+
 const JOBS = [
   {n:"Искатель сокровищ", gear:"Металлоискатель и лопата (24/7)", where:"Западный пляж города, пляж у Бастиона Занкудо", sell:"Скупщик раритета (город)", pay:"Зависит от предмета, содержимое клада случайное"},
   {n:"Рыболов", gear:"Удочка — у рыбака на пирсе на северо-западе города или в Бастионе Занкудо. Лодку можно арендовать у рынка", where:"Разрешённые зоны; глубже — крупнее рыба (видно по цвету воды)", sell:"Городской рынок, скупщик продуктов на Холме спасения", pay:"Вес рыбы, навык «рыбак», почасовая наценка"},
@@ -249,33 +323,58 @@ const JOBS = [
   {n:"Таксист", gear:"Менеджер Дэйв в таксопарке", where:"Заказы через телефон", sell:"—", pay:"Зависит от расстояния"},
 ];
 
-/* ===================== СКУПЩИКИ: поиск ===================== */
-const norm = s => s.toLowerCase().replace(/ё/g,"е").trim();
-let cat = null;
-const cats = [...new Set(ITEMS.map(i => i.cat))];
-$("cats").innerHTML = cats.map(c => `<button class="chip" aria-pressed="false" data-c="${esc(c)}">${esc(c)}</button>`).join("");
-$("cats").addEventListener("click", e => {
-  const b = e.target.closest(".chip"); if (!b) return;
-  cat = cat === b.dataset.c ? null : b.dataset.c;
-  document.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", x.dataset.c === cat));
-  renderSell(); haptic();
-});
-$("q").addEventListener("input", () => { cat = null; document.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", false)); renderSell(); });
+/* ===================== СКУПЩИКИ ===================== */
+const norm = s => s.toLowerCase().replace(/ё/g, "е").trim();
+let sellMode = "items";
+let verify = {};              // id предмета → "yes" | "no" (проверено игроком)
+const buyerLine = k => { const B = BUYERS[k]; return `<div><i class="loc l-${B.l}">${LOC[B.l]}</i><span>${esc(B.n)}${B.w ? ` <span class="note">· ${esc(B.w)}</span>` : ""}</span></div>`; };
+function badge(i){
+  const v = verify[i.id];
+  if (v === "yes") return `<span class="conf mine">проверено ✓</span>`;
+  if (v === "no") return `<span class="conf no">не берёт ✗</span>`;
+  return `<span class="conf ${i.c}">${i.c === "wiki" ? "по вики" : "по логике"}</span>`;
+}
+function itemCard(i){
+  const v = verify[i.id];
+  return `<div class="card"><div class="irow">
+    <img src="${IMG(i.id)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+    <div class="t"><span>${esc(i.n)}</span>${badge(i)}</div>
+    <div class="where">${i.b.map(buyerLine).join("")}</div>
+    <div class="note">${esc(i.note)}</div></div>
+    ${i.b[0] !== "none" ? `<div class="vbtns" data-id="${i.id}"><span class="note" style="align-self:center">Проверил в игре:</span>
+      <button data-v="yes" aria-pressed="${v === "yes"}">Берёт</button><button data-v="no" aria-pressed="${v === "no"}">Не берёт</button>
+      ${i.b.some(k => ["hill","bastion"].includes(BUYERS[k].l)) ? `<button data-map="${BUYERS[i.b.find(k => ["hill","bastion"].includes(BUYERS[k].l))].l}">На карте</button>` : ""}</div>` : ""}
+  </div>`;
+}
 function renderSell(){
   const q = norm($("q").value);
+  if (sellMode === "buyers" && !q) {
+    const by = {};
+    ITEMS.forEach(i => i.b.forEach(k => (by[k] = by[k] || []).push(i)));
+    const order = ["city","hill","bastion","waste","market","npc"];
+    const keys = Object.keys(BUYERS).filter(k => by[k]).sort((a, b) => order.indexOf(BUYERS[a].l) - order.indexOf(BUYERS[b].l));
+    $("results").innerHTML = keys.map(k => `<details class="card"><summary><span class="bhead"><i class="loc l-${BUYERS[k].l}">${LOC[BUYERS[k].l]}</i> ${esc(BUYERS[k].n)} <span class="note">· ${by[k].length}</span></span></summary>
+      <div class="items" style="margin-top:8px">${by[k].map(i => it(i.id, esc(i.n), verify[i.id] === "yes" ? "✓" : verify[i.id] === "no" ? "✗" : (i.c === "guess" ? "?" : ""))).join("")}</div></details>`).join("");
+    return;
+  }
   let list = ITEMS;
-  if (cat) list = list.filter(i => i.cat === cat);
-  if (q) list = list.map(i => ({...i, hit: i.names.find(n => norm(n).includes(q)) || (norm(i.cat).includes(q) ? i.names[0] : null)})).filter(i => i.hit);
-  if (!q && !cat) list = list.slice(0, 6);
-  $("results").innerHTML = list.length ? list.map(i => `
-    <div class="card">
-      <div class="t"><span>${esc(i.hit || i.cat)}</span><span class="conf ${i.c}">${i.c === "wiki" ? "по вики" : "по логике"}</span></div>
-      <div class="where">${i.w.map(([l, who, extra]) => `<div><i class="loc l-${l}">${LOC[l]}</i><span>${esc(who)}${extra ? ` <span class="note">· ${esc(extra)}</span>` : ""}</span></div>`).join("")}</div>
-      <div class="note">${esc(i.note)}</div>
-      ${(i.hit ? i.names.filter(n => n !== i.hit) : i.names).length ? `<div class="note">Сюда же: ${esc((i.hit ? i.names.filter(n => n !== i.hit) : i.names).slice(0, 8).join(", "))}</div>` : ""}
-    </div>`).join("")
-    : `<div class="empty">Не знаю такого предмета.<br>Попробуй другое слово или выбери категорию.</div>`;
+  if (q) list = ITEMS.filter(i => norm(i.n).includes(q) || norm(i.cat).includes(q) || i.b.some(k => norm(BUYERS[k].n).includes(q)));
+  else list = ITEMS.filter((i, k, a) => a.findIndex(x => x.cat === i.cat) === k);   // по одному на категорию
+  $("results").innerHTML = (q ? "" : `<p class="note" style="margin:0">По одному предмету из каждой группы. Впиши название, чтобы найти любой из ${ITEMS.length}.</p>`) +
+    (list.length ? list.slice(0, 60).map(itemCard).join("") : `<div class="empty">Не знаю такого предмета.<br>Попробуй другое слово или открой «По скупщикам».</div>`);
 }
+$("q").addEventListener("input", renderSell);
+$("mode-items").addEventListener("click", () => { sellMode = "items"; $("mode-items").setAttribute("aria-pressed", true); $("mode-buyers").setAttribute("aria-pressed", false); renderSell(); haptic(); });
+$("mode-buyers").addEventListener("click", () => { sellMode = "buyers"; $("q").value = ""; $("mode-buyers").setAttribute("aria-pressed", true); $("mode-items").setAttribute("aria-pressed", false); renderSell(); haptic(); });
+$("results").addEventListener("click", e => {
+  const m = e.target.closest("[data-map]");
+  if (m) { show("map"); focusSettlement(m.dataset.map); return; }
+  const b = e.target.closest(".vbtns button[data-v]"); if (!b) return;
+  const id = +b.parentElement.dataset.id;
+  verify[id] = verify[id] === b.dataset.v ? undefined : b.dataset.v;
+  if (!verify[id]) delete verify[id];
+  save("verify", verify); renderSell(); haptic("success");
+});
 
 /* ===================== РАБОТЫ ===================== */
 $("jobs").innerHTML = JOBS.map(j => `
@@ -426,9 +525,88 @@ $("g-toc").addEventListener("click", e => {
   const d = $("g-" + b.dataset.g); d.open = true; d.scrollIntoView({behavior:"smooth", block:"start"}); haptic();
 });
 
+/* ===================== КАРТА ===================== */
+/* Тайлы и формула перевода игровых координат — с карты вики d9-rp.com. */
+const CAL = {ax:1.95401829172715, bx:15383.0348948326, ay:-1.95446936710272, by:20641.1462385458};
+const PLACES = [
+  {k:"hill",    n:"Холм спасения",   x:2450,  y:3827, d:"Поселение (отмечено по бару «Холм Спасения»). Скупщики: раритета, продуктов, золота, дерева."},
+  {k:"bastion", n:"Бастион Занкудо", x:-2975, y:3363, d:"Поселение (отмечено по бару «Бастион Занкудо»). Скупщики: трофеев, еды, камня. Рядом пляж для кладов."},
+  {k:"city",    n:"Город",           x:-200,  y:-900, d:"Лос-Сантос. Скупщики рыбы, раритета, дерева, камня и апельсинов — в основном на городском рынке. Точку рынка вики не даёт: поставь метку сам."},
+];
+const SHOPS = [
+  ["gun","Ammu-Nation Пиллбокс-Хилл",21,-1109],["gun","Ammu-Nation Сайперс-Флэтс",811,-2155],["gun","Ammu-Nation Чумаш",-3166,1084],
+  ["boat","Судовой магазин",-760,-1515],["car","Автосалон Пустошь",-2992,3437],
+  ["shop","24/7",29,-1350],["shop","24/7",377,323],["shop","24/7",-1822,788],["shop","24/7",1160,-327],["shop","24/7",-712,-917],["shop","24/7",-53,-1757],
+  ["shop","24/7",-1226,-903],["shop","24/7",-1491,-383],["shop","24/7",-1427,-267],["shop","24/7",1140,-981],["shop","24/7",-3242,1002],["shop","24/7",2558,382],
+  ["shop","24/7 (Холм спасения)",2408,3813],["shop","24/7 (Бастион Занкудо)",-2973,3398],
+];
+const SHOP_INFO = {gun:["#e13b3b","Оружие и патроны"], shop:["#79ce79","Металлоискатель, лопата, семена"], boat:["#65b9e7","Лодки"], car:["#f0ca57","Транспорт"]};
+const LOC_COLOR = {city:"#3a7bd5", bastion:"#b4561f", hill:"#7a5bc7", waste:"#6b7a3a", market:"#555", npc:"#555", other:"#c4881b"};
+let map = null, pins = [], pinLayer = null, addMode = false, pendingLL = null;
+const toLL = (x, y) => map.unproject([CAL.ax * x + CAL.bx, CAL.ay * y + CAL.by], 7);
+const toGame = ll => { const p = map.project(ll, 7); return {x: (p.x - CAL.bx) / CAL.ax, y: (p.y - CAL.by) / CAL.ay}; };
+const dot = (c, size = 14) => L.divIcon({className:"", html:`<div class="pin" style="background:${c};width:${size}px;height:${size}px"></div>`, iconSize:[size, size], iconAnchor:[size / 2, size / 2]});
+function initMap(){
+  if (map) { map.invalidateSize(); return; }
+  if (!window.L) { $("map").innerHTML = `<div class="empty">Карта не загрузилась. Проверь интернет и открой вкладку ещё раз.</div>`; return; }
+  map = L.map("map", {crs:L.CRS.Simple, minZoom:1, maxZoom:8, zoomSnap:0.5, attributionControl:true});
+  const bounds = L.latLngBounds(map.unproject([0, 32768], 7), map.unproject([32768, 0], 7));
+  const layer = (k, ext) => L.tileLayer(`https://d9-rp.com/map/${k}/{z}/{x}/{y}.${ext}`, {minZoom:1, maxZoom:8, maxNativeZoom:7, noWrap:true, bounds, attribution:'Карта: <a href="https://d9-rp.com/ru/wiki/map" target="_blank">d9-rp.com</a>'});
+  const dark = layer("black", "png").addTo(map), sat = layer("satellite", "jpg");
+  map.setMaxBounds(bounds.pad(0.2));
+  const shops = L.layerGroup(SHOPS.map(([t, n, x, y]) => L.marker(toLL(x, y), {icon:dot(SHOP_INFO[t][0], 11)}).bindPopup(`<b>${esc(n)}</b><br>${SHOP_INFO[t][1]}`)));
+  const places = L.layerGroup(PLACES.map(p => (p.m = L.marker(toLL(p.x, p.y), {icon:dot(LOC_COLOR[p.k], 20)}).bindPopup(`<b>${p.n}</b><br>${p.d}`))));
+  pinLayer = L.layerGroup().addTo(map);
+  shops.addTo(map); places.addTo(map);
+  L.control.layers({"Тёмная":dark, "Спутник":sat}, {"Поселения":places, "Магазины":shops, "Мои метки":pinLayer}, {collapsed:true}).addTo(map);
+  map.setView(toLL(0, 1200), 2.5);
+  map.on("click", e => { if (!addMode) return; pendingLL = e.latlng; openPinForm(); });
+  drawPins();
+}
+function focusSettlement(k){
+  setTimeout(() => { initMap(); if (!map) return; const p = PLACES.find(p => p.k === k); if (p) { map.setView(toLL(p.x, p.y), 4.5); p.m.openPopup(); } }, 60);
+}
+function drawPins(){
+  if (!pinLayer) return;
+  pinLayer.clearLayers();
+  pins.forEach((p, i) => {
+    const B = BUYERS[p.b], c = B ? LOC_COLOR[B.l] : LOC_COLOR.other;
+    L.marker(toLL(p.x, p.y), {icon:dot(c, 16)}).bindPopup(`<b>${esc(B ? B.n : "Метка")}</b>${p.n ? "<br>" + esc(p.n) : ""}<br><a href="#" data-del="${i}">Удалить метку</a>`).addTo(pinLayer);
+  });
+  $("pins-list").innerHTML = pins.length ? `<div class="t">Мои метки</div>` + pins.map((p, i) => `<div class="row" style="padding:4px 0"><span>${esc(BUYERS[p.b] ? BUYERS[p.b].n : "Метка")}${p.n ? ` <span class="note">· ${esc(p.n)}</span>` : ""}</span><button class="chip" data-go="${i}">Показать</button></div>`).join("")
+    : `<div class="note">Пока меток нет. Нашёл скупщика в игре — нажми «＋ Метка скупщика», ткни в это место на карте и выбери, кто там стоит.</div>`;
+}
+function openPinForm(){
+  $("pin-form").hidden = false;
+  $("pin-b").innerHTML = Object.entries(BUYERS).filter(([k]) => !["market","none"].includes(k)).map(([k, B]) => `<option value="${k}">${B.n} — ${LOC[B.l]}</option>`).join("") + `<option value="other">Другое</option>`;
+  $("pin-n").value = ""; $("pin-form").scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+$("m-add").addEventListener("click", () => {
+  addMode = !addMode; $("m-add").setAttribute("aria-pressed", addMode);
+  $("m-hint").textContent = addMode ? "Ткни в карту, где стоит скупщик." : "";
+  if (!addMode) $("pin-form").hidden = true;
+  haptic();
+});
+$("pin-save").addEventListener("click", () => {
+  if (!pendingLL) return;
+  const g = toGame(pendingLL);
+  pins.push({x:Math.round(g.x), y:Math.round(g.y), b:$("pin-b").value, n:$("pin-n").value.trim().slice(0, 60)});
+  save("pins", pins); drawPins();
+  $("pin-form").hidden = true; addMode = false; $("m-add").setAttribute("aria-pressed", false); $("m-hint").textContent = "Метка сохранена.";
+  haptic("success");
+});
+$("pin-cancel").addEventListener("click", () => { $("pin-form").hidden = true; pendingLL = null; });
+$("pins-list").addEventListener("click", e => { const b = e.target.closest("[data-go]"); if (!b || !map) return; const p = pins[+b.dataset.go]; map.setView(toLL(p.x, p.y), 5); window.scrollTo(0, 0); });
+document.addEventListener("click", e => {
+  const a = e.target.closest("a[data-del]"); if (!a) return;
+  e.preventDefault(); pins.splice(+a.dataset.del, 1); save("pins", pins); map.closePopup(); drawPins();
+});
+document.querySelectorAll("[data-place]").forEach(b => b.addEventListener("click", () => focusSettlement(b.dataset.place)));
+
 /* ===================== НАВИГАЦИЯ ===================== */
 function show(v){
-  ["sell","jobs","calc","log","info"].forEach(k => { $("v-" + k).hidden = k !== v; });
+  ["sell","map","jobs","calc","log","info"].forEach(k => { $("v-" + k).hidden = k !== v; });
+  if (v === "map") setTimeout(initMap, 50);
   document.querySelectorAll("nav button").forEach(b => b.setAttribute("aria-selected", b.dataset.v === v));
   window.scrollTo(0, 0); haptic();
 }
@@ -437,6 +615,8 @@ function haptic(kind){ try { if (tg && tg.HapticFeedback) kind ? tg.HapticFeedba
 function notify(t){ if (tg && tg.showAlert && tg.platform !== "unknown") tg.showAlert(t); else $("l-sum").placeholder = t; }
 
 renderSell(); calc(); renderLog();
+load("verify", v => { if (v && typeof v === "object") { verify = v; renderSell(); } });
+load("pins", v => { if (Array.isArray(v)) { pins = v; drawPins(); } });
 load("log", v => { if (Array.isArray(v)) { log = v; renderLog(); } });
 load("calc", v => { if (v) { $("c-nug").value = v.n || ""; $("c-pc").value = v.p || ""; $("p-dust").value = v.d || ""; $("p-w").value = v.w || ""; $("p-prec").value = v.pr || ""; $("p-aqua").value = v.a || ""; calc(); } calcReady = true; });
 })();
