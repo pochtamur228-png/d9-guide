@@ -58,7 +58,7 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
 .vbtns button{border:0;border-radius:8px;padding:5px 9px;font-size:12px;background:var(--bg);cursor:pointer}
 .vbtns button[aria-pressed="true"]{background:var(--btn);color:var(--btn-fg)}
 .bhead{display:flex;align-items:center;gap:8px;justify-content:space-between}
-.mapbox{height:calc(100vh - 230px);min-height:340px;border-radius:14px;overflow:hidden;background:#0d0f12}
+.mapbox{height:60vh;min-height:300px;border-radius:14px;overflow:hidden;background:#0d0f12}
 .pin{width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #000}
 .leaflet-popup-content{font:13px/1.4 var(--font)}
 .note{font-size:13px;color:var(--muted)}
@@ -135,6 +135,17 @@ dt{color:var(--muted)}dd{margin:0}
   </div>
   <p class="note" id="m-hint" style="margin:0"></p>
   <div id="map" class="mapbox"></div>
+  <div class="legend" id="map-legend">
+    <span><i class="pin" style="background:#7a5bc7;display:inline-block"></i>Холм спасения</span>
+    <span><i class="pin" style="background:#b4561f;display:inline-block"></i>Бастион Занкудо</span>
+    <span><i class="pin" style="background:#3a7bd5;display:inline-block"></i>Город</span>
+    <span><i class="pin" style="background:#e13b3b;display:inline-block"></i>Ammu-Nation / Форт Занкудо</span>
+    <span><i class="pin" style="background:#79ce79;display:inline-block"></i>24/7 · тюрьма</span>
+    <span><i class="pin" style="background:#65b9e7;display:inline-block"></i>Судовой магазин · Human Labs</span>
+    <span><i class="pin" style="background:#f0ca57;display:inline-block"></i>Золото · автосалон</span>
+    <span><i class="pin" style="background:#a174b3;display:inline-block"></i>Магазин масок</span>
+    <span>Нажми на точку — будет подпись. Слои — кнопка справа сверху.</span>
+  </div>
   <div class="card" id="pin-form" hidden>
     <div class="t">Что здесь?</div>
     <label class="f" for="pin-b">Скупщик или место<select id="pin-b"></select></label>
@@ -685,7 +696,19 @@ let map = null, pins = [], pinLayer = null, addMode = false, pendingLL = null;
 const toLL = (x, y) => map.unproject([CAL.ax * x + CAL.bx, CAL.ay * y + CAL.by], 7);
 const toGame = ll => { const p = map.project(ll, 7); return {x: (p.x - CAL.bx) / CAL.ax, y: (p.y - CAL.by) / CAL.ay}; };
 const dot = (c, size = 14) => L.divIcon({className:"", html:`<div class="pin" style="background:${c};width:${size}px;height:${size}px"></div>`, iconSize:[size, size], iconAnchor:[size / 2, size / 2]});
+/* Высота карты = видимая высота экрана минус шапка вкладки и нижнее меню, чтобы карта не уходила под меню. */
+function sizeMap(){
+  const el = $("map"); if (!el || $("v-map").hidden) return;
+  const vh = (tg && tg.viewportStableHeight) || window.innerHeight;
+  const nav = document.querySelector("nav").offsetHeight;
+  const top = el.getBoundingClientRect().top;
+  el.style.height = Math.max(260, Math.round(vh - top - nav - 12)) + "px";
+  if (map) map.invalidateSize();
+}
+window.addEventListener("resize", sizeMap);
+if (tg && tg.onEvent) tg.onEvent("viewportChanged", sizeMap);
 function initMap(){
+  window.scrollTo(0, 0); sizeMap();
   if (map) { map.invalidateSize(); return; }
   if (!window.L) { $("map").innerHTML = `<div class="empty">Карта не загрузилась. Проверь интернет и открой вкладку ещё раз.</div>`; return; }
   map = L.map("map", {crs:L.CRS.Simple, minZoom:1, maxZoom:8, zoomSnap:0.5, attributionControl:true});
@@ -699,7 +722,7 @@ function initMap(){
   pinLayer = L.layerGroup().addTo(map);
   shops.addTo(map); places.addTo(map); marks.addTo(map);
   layersCtl = L.control.layers({"Тёмная":dark, "Спутник":sat}, {"Поселения":places, "Бункеры и места":marks, "Магазины":shops, "Мои метки":pinLayer}, {collapsed:true}).addTo(map);
-  map.setView(toLL(0, 1200), 2.5);
+  map.fitBounds(L.latLngBounds(toLL(-3600, -3800), toLL(4200, 7800)));
   map.on("click", e => { if (!addMode) return; pendingLL = e.latlng; openPinForm(); });
   drawPins(); drawSharedPins();
 }
