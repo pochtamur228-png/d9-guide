@@ -1,0 +1,11 @@
+name = "d9-reminders"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+
+# раз в 5 минут — подарки и налоги; 08:45 и 16:45 UTC = 11:45 и 19:45 МСК — турниры по рыбалке
+[triggers]
+crons = ["*/5 * * * *", "45 8 * * *", "45 16 * * *"]
+
+[[kv_namespaces]]
+binding = "SUBS"
+id = "70d5b34e1f534800a30bdc1be073bcb4"
