@@ -14,7 +14,7 @@
 const APP_URL = "https://pochtamur228-png.github.io/d9-guide/";
 const GIFT_MS = 4 * 3600e3;          // подарок за онлайн — раз в 4 часа
 const TAX_MS = 13 * 24 * 3600e3;     // налог можно оплатить максимум на 14 дней — напоминаем за день
-const KINDS = {bug: "🐞 Баг", idea: "💡 Идея", data: "📍 Неточность в данных", other: "💬 Другое"};
+const KINDS = {bug: "🐞 Не работает (справочник/бот)", idea: "💡 Идея для справочника/бота", data: "📍 Неверные данные в справочнике", other: "💬 Другое"};
 const escH = s => String(s).replace(/[&<>]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;"}[c]));
 const CORS = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type"};
 
@@ -119,7 +119,7 @@ async function onUpdate(env, upd) {
     const u = await getUser(env, id);
     if (text.startsWith("/start")) {
       await tg(env, "sendMessage", {chat_id: id, parse_mode: "HTML", text:
-        "Привет! Я помощник по DISTRICT 9 RP.\n\nСправочник — кнопка «Справочник» внизу или /app.\nНапоминания о подарке, турнирах и налоге — /remind.\nНашёл ошибку или есть идея — /idea или лично @MalkovRonan."});
+        "Привет! Я помощник по DISTRICT 9 RP.\n\nСправочник — кнопка «Справочник» внизу или /app.\nНапоминания о подарке, турнирах и налоге — /remind.\nНашёл ошибку в справочнике или боте, есть идея — /idea или лично @MalkovRonan."});
     }
     // владелец отвечает (Reply) на пересланный отзыв → ответ уходит игроку
     if (String(id) === String(env.OWNER_ID) && upd.message.reply_to_message) {
@@ -137,7 +137,7 @@ async function onUpdate(env, upd) {
       const body = text.replace(/^\/(idea|bug)(@\w+)?/, "").trim();
       if (!body) {
         await env.SUBS.put("await:" + id, kind, {expirationTtl: 900});
-        await tg(env, "sendMessage", {chat_id: id, text: "Напиши одним сообщением, что нашёл или что предлагаешь: баг, идею или неточность в справочнике."});
+        await tg(env, "sendMessage", {chat_id: id, text: "Напиши одним сообщением, что не так со справочником или ботом, какие данные в нём неверные или что добавить.\n\nЭто связь с разработчиком справочника, а не с администрацией DISTRICT 9: баги игры и жалобы на игроков — на forum.d9-rp.com."});
         return;
       }
       return sendIdea(env, id, upd.message.from, kind, body);
@@ -252,7 +252,7 @@ export default {
       const cmds = await tg(env, "setMyCommands", {commands: [
         {command: "remind", description: "Напоминания: подарок, турниры, налог"},
         {command: "app", description: "Открыть справочник"},
-        {command: "idea", description: "Идея или баг — написать разработчику"},
+        {command: "idea", description: "Ошибка или идея по справочнику и боту"},
       ]});
       const owner = env.OWNER_ID ? await tg(env, "getChat", {chat_id: env.OWNER_ID}) : null;
       const me = await tg(env, "getMe", {});

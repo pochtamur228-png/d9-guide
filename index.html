@@ -377,8 +377,8 @@ input[type=checkbox]{accent-color:var(--rust)}
     <button class="btn ghost" id="chk-reset" style="margin-top:4px">Сбросить для новой вылазки</button>
   </details>
   <div class="card">
-    <div class="t">Нашёл ошибку или есть идея?</div>
-    <div class="note">Справочник ещё дорабатывается — пиши, что исправить или добавить. Ответ придёт в бота. Можно и лично в Telegram: <a href="https://t.me/MalkovRonan" target="_blank" rel="noopener">@MalkovRonan</a>.</div>
+    <div class="t">Ошибка или идея по справочнику?</div>
+    <div class="note">Справочник и бот ещё дорабатываются. Пиши, если что-то в них не работает, в справочнике неверные данные или хочешь новую функцию. Ответ придёт в бота. Можно и лично в Telegram: <a href="https://t.me/MalkovRonan" target="_blank" rel="noopener">@MalkovRonan</a>.</div>
     <button class="btn" id="fb-open" style="margin-top:4px">💬 Написать разработчику</button>
   </div>
   <div class="chips" id="g-toc"></div>
@@ -394,15 +394,16 @@ input[type=checkbox]{accent-color:var(--rust)}
   <p class="note">Неофициальный справочник игрока. Данные и изображения предметов — d9-rp.com, ноябрь 2026. Пометка <span class="conf guess">по логике</span> — вывод из названий и описаний, в вики прямо не написано.</p>
 </section>
 
-<button id="fb-fab" aria-label="Идея или ошибка — написать разработчику" title="Идея или ошибка">💬</button>
+<button id="fb-fab" aria-label="Ошибка или идея по справочнику — написать разработчику" title="Ошибка или идея по справочнику">💬</button>
 <div class="fb-back" id="fb" hidden>
   <div class="fb-sheet" role="dialog" aria-modal="true" aria-labelledby="fb-h">
-    <h2 id="fb-h">Идея или ошибка?</h2>
-    <p class="note" style="margin:0">Справочник ещё дорабатывается. Напиши, что сломалось, где неточность или что добавить. Сообщение придёт разработчику, ответ — в бота. Или напиши напрямую в Telegram: <a href="https://t.me/MalkovRonan" target="_blank" rel="noopener">@MalkovRonan</a>.</p>
+    <h2 id="fb-h">Справочник и бот: ошибка или идея?</h2>
+    <p class="note" style="margin:0">Это связь с разработчиком <b>этого справочника и бота</b> — не с администрацией DISTRICT 9. Пиши, что в приложении или боте не работает, какие данные неверные или что добавить. Ответ придёт в бота. Лично: <a href="https://t.me/MalkovRonan" target="_blank" rel="noopener">@MalkovRonan</a>.</p>
+    <p class="note" style="margin:0">Баги самой игры, жалобы на игроков и вопросы по серверу — на <a href="https://forum.d9-rp.com" target="_blank" rel="noopener">форум D9</a> или в их Discord.</p>
     <div class="vbtns" id="fb-kind">
-      <button data-k="bug" aria-pressed="true">🐞 Баг</button><button data-k="idea" aria-pressed="false">💡 Идея</button><button data-k="data" aria-pressed="false">📍 Неточность</button><button data-k="other" aria-pressed="false">💬 Другое</button>
+      <button data-k="bug" aria-pressed="true">🐞 Не работает</button><button data-k="idea" aria-pressed="false">💡 Добавить</button><button data-k="data" aria-pressed="false">📍 Неверные данные</button><button data-k="other" aria-pressed="false">💬 Другое</button>
     </div>
-    <textarea id="fb-text" maxlength="1500" placeholder="Например: «Скупщик рыбы не берёт окуня» или «Добавьте таймер AirDrop»"></textarea>
+    <textarea id="fb-text" maxlength="1500" placeholder="Например: «Карта не открывается на телефоне», «В справочнике окуня берёт другой скупщик», «Добавьте в бота напоминание об AirDrop»"></textarea>
     <div class="fb-st" id="fb-st" aria-live="polite"></div>
     <div class="fb-row"><button class="btn ghost" id="fb-cancel">Отмена</button><button class="btn" id="fb-send">Отправить</button></div>
   </div>
@@ -546,7 +547,7 @@ function itemCard(i){
     <div class="note">${esc(i.note)}</div>${sharedLine(i)}</div>
     <div class="vbtns" data-id="${i.id}">${i.b[0] !== "none" ? `<span class="note" style="align-self:center">Проверил в игре:</span>
       <button data-v="yes" aria-pressed="${v === "yes"}">Берёт</button><button data-v="no" aria-pressed="${v === "no"}">Не берёт</button>` : ""}
-      <button class="fbq" data-fb="${esc(i.n)}">Неточно?</button></div>
+      <button class="fbq" data-fb="${esc(i.n)}">Ошибка в справочнике?</button></div>
   </div>`;
 }
 function renderSell(){
