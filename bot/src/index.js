@@ -2,6 +2,7 @@
  * D9 Справочник — бот напоминаний (Cloudflare Worker).
  *
  *  POST /tg      — вебхук Telegram (проверяется секретный заголовок)
+ *  POST /feedback — идеи и баги из мини-приложения → пересылаются владельцу (OWNER_ID)
  *  GET  /setup   — регистрирует вебхук и команды бота (можно вызывать повторно)
  *  cron          — раз в 5 минут рассылает созревшие напоминания,
  *                  в 08:45 и 16:45 UTC (11:45 и 19:45 МСК) — о турнирах по рыбалке.
@@ -13,6 +14,63 @@
 const APP_URL = "https://pochtamur228-png.github.io/d9-guide/";
 const GIFT_MS = 4 * 3600e3;          // подарок за онлайн — раз в 4 часа
 const TAX_MS = 13 * 24 * 3600e3;     // налог можно оплатить максимум на 14 дней — напоминаем за день
+const KINDS = {bug: "🐞 Баг", idea: "💡 Идея", data: "📍 Неточность в данных", other: "💬 Другое"};
+const escH = s => String(s).replace(/[&<>]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;"}[c]));
+const CORS = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type"};
+
+/* ---------- отзывы: идеи и баги от игроков ---------- */
+
+// Проверка подписи initData из Telegram Mini App (core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app)
+async function checkInitData(env, initData) {
+  if (!initData) return null;
+  const p = new URLSearchParams(initData), hash = p.get("hash");
+  if (!hash) return null;
+  p.delete("hash");
+  const data = [...p.entries()].map(([k, v]) => k + "=" + v).sort().join("\n");
+  const enc = new TextEncoder();
+  const hmac = async (key, msg) => new Uint8Array(await crypto.subtle.sign("HMAC",
+    await crypto.subtle.importKey("raw", key, {name: "HMAC", hash: "SHA-256"}, false, ["sign"]), enc.encode(msg)));
+  const secret = await hmac(enc.encode("WebAppData"), env.BOT_TOKEN);
+  const sig = [...(await hmac(secret, data))].map(b => b.toString(16).padStart(2, "0")).join("");
+  if (sig !== hash) return null;
+  if (Date.now() / 1000 - Number(p.get("auth_date") || 0) > 7 * 86400) return null;
+  try { return JSON.parse(p.get("user") || "null"); } catch (e) { return null; }
+}
+
+// не больше `max` сообщений в час от одного отправителя
+async function rateOk(env, who, max) {
+  const key = `rl:${who}:${Math.floor(Date.now() / 3600e3)}`;
+  const n = Number(await env.SUBS.get(key) || 0);
+  if (n >= max) return false;
+  await env.SUBS.put(key, String(n + 1), {expirationTtl: 3700});
+  return true;
+}
+
+const who = u => u ? `${escH([u.first_name, u.last_name].filter(Boolean).join(" ") || "игрок")}${u.username ? " @" + escH(u.username) : ""} <code>${u.id}</code>` : "аноним (не из Telegram)";
+
+// пересылает отзыв владельцу и запоминает, кому отвечать
+async function deliver(env, {kind, text, user, ctx}) {
+  if (!env.OWNER_ID) return false;
+  const msg = `<b>${KINDS[kind] || KINDS.other}</b> от ${who(user)}\n` + (ctx ? `<i>${escH(ctx)}</i>\n` : "") + `\n${escH(text)}` +
+    (user ? "\n\n<i>Ответь на это сообщение (Reply) — ответ уйдёт игроку.</i>" : "");
+  const r = await tg(env, "sendMessage", {chat_id: env.OWNER_ID, parse_mode: "HTML", text: msg.slice(0, 4000)});
+  if (r.ok && user) await env.SUBS.put("fb:" + r.result.message_id, String(user.id), {expirationTtl: 60 * 86400});
+  return !!r.ok;
+}
+
+async function feedbackHttp(req, env) {
+  const json = (o, status = 200) => new Response(JSON.stringify(o), {status, headers: {...CORS, "Content-Type": "application/json; charset=utf-8"}});
+  let b;
+  try { b = await req.json(); } catch (e) { return json({ok: false, error: "bad json"}, 400); }
+  const text = String(b.text || "").trim().slice(0, 1500);
+  if (text.length < 5) return json({ok: false, error: "Слишком коротко"}, 400);
+  const user = await checkInitData(env, String(b.initData || ""));
+  const id = user ? "u" + user.id : "ip" + (req.headers.get("CF-Connecting-IP") || "?");
+  if (!(await rateOk(env, id, user ? 6 : 3))) return json({ok: false, error: "Слишком часто — попробуй через час"}, 429);
+  const ctx = ["раздел: " + String(b.tab || "?").slice(0, 30), String(b.platform || "").slice(0, 20)].filter(Boolean).join(" · ");
+  const ok = await deliver(env, {kind: String(b.kind || "other"), text, user, ctx});
+  return json({ok, reply: !!user}, ok ? 200 : 502);
+}
 
 async function hookSecret(env) {
   const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("d9-hook:" + env.BOT_TOKEN));
@@ -61,7 +119,32 @@ async function onUpdate(env, upd) {
     const u = await getUser(env, id);
     if (text.startsWith("/start")) {
       await tg(env, "sendMessage", {chat_id: id, parse_mode: "HTML", text:
-        "Привет! Я помощник по DISTRICT 9 RP.\n\nСправочник — кнопка «Справочник» внизу или /app.\nНапоминания о подарке, турнирах и налоге — /remind."});
+        "Привет! Я помощник по DISTRICT 9 RP.\n\nСправочник — кнопка «Справочник» внизу или /app.\nНапоминания о подарке, турнирах и налоге — /remind.\nНашёл ошибку или есть идея — /idea."});
+    }
+    // владелец отвечает (Reply) на пересланный отзыв → ответ уходит игроку
+    if (String(id) === String(env.OWNER_ID) && upd.message.reply_to_message) {
+      const to = await env.SUBS.get("fb:" + upd.message.reply_to_message.message_id);
+      if (to) {
+        const r = await tg(env, "sendMessage", {chat_id: to, parse_mode: "HTML", text: "💬 <b>Ответ разработчика справочника</b>\n\n" + escH(text)});
+        await tg(env, "sendMessage", {chat_id: id, reply_to_message_id: upd.message.message_id,
+          text: r.ok ? "✅ Ответ отправлен" : "⚠️ Не доставлено: игрок не запускал бота или заблокировал его"});
+        return;
+      }
+    }
+    // /idea текст — сразу; /idea без текста — следующее сообщение станет отзывом
+    if (text.startsWith("/idea") || text.startsWith("/bug")) {
+      const kind = text.startsWith("/bug") ? "bug" : "idea";
+      const body = text.replace(/^\/(idea|bug)(@\w+)?/, "").trim();
+      if (!body) {
+        await env.SUBS.put("await:" + id, kind, {expirationTtl: 900});
+        await tg(env, "sendMessage", {chat_id: id, text: "Напиши одним сообщением, что нашёл или что предлагаешь: баг, идею или неточность в справочнике."});
+        return;
+      }
+      return sendIdea(env, id, upd.message.from, kind, body);
+    }
+    if (text && !text.startsWith("/")) {
+      const kind = await env.SUBS.get("await:" + id);
+      if (kind) { await env.SUBS.delete("await:" + id); return sendIdea(env, id, upd.message.from, kind, text); }
     }
     if (text.startsWith("/app")) {
       await tg(env, "sendMessage", {chat_id: id, text: "Справочник: скупщики, карта, гайд, доход.", reply_markup: openApp});
@@ -85,6 +168,15 @@ async function onUpdate(env, upd) {
     const m = menu(u);
     await tg(env, "editMessageText", {chat_id: id, message_id: q.message.message_id, parse_mode: "HTML", text: m.text, reply_markup: m.reply_markup});
   }
+}
+
+async function sendIdea(env, chatId, from, kind, text) {
+  if (!(await rateOk(env, "u" + from.id, 6))) {
+    await tg(env, "sendMessage", {chat_id: chatId, text: "Слишком много сообщений за час — попробуй позже."});
+    return;
+  }
+  const ok = await deliver(env, {kind, text: text.slice(0, 1500), user: from, ctx: "через бота"});
+  await tg(env, "sendMessage", {chat_id: chatId, text: ok ? "Спасибо! Передал разработчику. Если он ответит — пришлю сюда." : "Не получилось отправить, попробуй позже."});
 }
 
 async function eachUser(env, fn) {
@@ -134,6 +226,10 @@ export default {
       try { await onUpdate(env, await req.json()); } catch (e) { console.log("update error", e); }
       return new Response("ok");
     }
+    if (url.pathname === "/feedback") {
+      if (req.method === "OPTIONS") return new Response(null, {headers: CORS});
+      if (req.method === "POST") return feedbackHttp(req, env);
+    }
     if (url.pathname === "/zones") {
       // Территории для захвата с карты d9-rp.com: сайт не отдаёт CORS, поэтому проксируем и кэшируем на минуту.
       const cors = {"Access-Control-Allow-Origin": "*", "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=60"};
@@ -156,6 +252,7 @@ export default {
       const cmds = await tg(env, "setMyCommands", {commands: [
         {command: "remind", description: "Напоминания: подарок, турниры, налог"},
         {command: "app", description: "Открыть справочник"},
+        {command: "idea", description: "Идея или баг — написать разработчику"},
       ]});
       return Response.json({webhook: hook.ok, commands: cmds.ok, description: hook.description});
     }

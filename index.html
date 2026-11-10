@@ -158,6 +158,21 @@ nav button[aria-selected="true"]{color:var(--rust-hi)}
 nav button[aria-selected="true"]::before{content:"";position:absolute;top:0;left:25%;right:25%;height:2px;border-radius:0 0 2px 2px;
   background:var(--rust-hi);box-shadow:0 0 10px var(--rust)}
 .mapbox{border:1px solid var(--line);background:#070807}
+#fb-fab{position:fixed;top:10px;right:12px;z-index:11;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);
+  background:rgba(23,28,23,.92);color:var(--fg);font-size:18px;cursor:pointer;box-shadow:0 6px 16px -8px rgba(0,0,0,.9)}
+#fb-fab:active{transform:scale(.94)}
+.fb-back{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
+.fb-sheet{width:100%;max-width:560px;background:#141814;border:1px solid var(--line);border-bottom:0;border-radius:16px 16px 0 0;
+  padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;max-height:92vh;overflow:auto}
+.fb-sheet h2{margin:0;font-family:var(--display);font-weight:400;font-size:18px;letter-spacing:.03em}
+.fb-sheet textarea{width:100%;min-height:120px;resize:vertical;border-radius:10px;padding:10px 12px;font:inherit;
+  background:var(--bg3);border:1px solid var(--line);color:var(--fg)}
+.fb-sheet textarea:focus{outline:1px solid var(--rust)}
+.fb-row{display:flex;gap:8px}
+.fb-row .btn{flex:1}
+.fb-st{font-size:13px;color:var(--muted);min-height:1em}
+.fb-st.ok{color:var(--tox)}.fb-st.err{color:#ff7a6e}
+.vbtns .fbq{margin-left:auto;background:transparent!important;border-style:dashed!important;color:var(--muted)!important}
 .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#1a1f1a;color:var(--fg);box-shadow:0 6px 20px rgba(0,0,0,.7)}
 .leaflet-popup-content-wrapper{border:1px solid var(--rust);border-radius:8px}
 .leaflet-popup-content a{color:var(--rust-hi)}
@@ -361,6 +376,11 @@ input[type=checkbox]{accent-color:var(--rust)}
     <div id="chk" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
     <button class="btn ghost" id="chk-reset" style="margin-top:4px">Сбросить для новой вылазки</button>
   </details>
+  <div class="card">
+    <div class="t">Нашёл ошибку или есть идея?</div>
+    <div class="note">Справочник ещё дорабатывается — пиши, что исправить или добавить. Ответ придёт в бота.</div>
+    <button class="btn" id="fb-open" style="margin-top:4px">💬 Написать разработчику</button>
+  </div>
   <div class="chips" id="g-toc"></div>
   <div id="guide" style="display:flex;flex-direction:column;gap:8px"></div>
   <div class="card">
@@ -373,6 +393,20 @@ input[type=checkbox]{accent-color:var(--rust)}
   </div>
   <p class="note">Неофициальный справочник игрока. Данные и изображения предметов — d9-rp.com, ноябрь 2026. Пометка <span class="conf guess">по логике</span> — вывод из названий и описаний, в вики прямо не написано.</p>
 </section>
+
+<button id="fb-fab" aria-label="Идея или ошибка — написать разработчику" title="Идея или ошибка">💬</button>
+<div class="fb-back" id="fb" hidden>
+  <div class="fb-sheet" role="dialog" aria-modal="true" aria-labelledby="fb-h">
+    <h2 id="fb-h">Идея или ошибка?</h2>
+    <p class="note" style="margin:0">Справочник ещё дорабатывается. Напиши, что сломалось, где неточность или что добавить. Сообщение придёт разработчику, ответ — в бота.</p>
+    <div class="vbtns" id="fb-kind">
+      <button data-k="bug" aria-pressed="true">🐞 Баг</button><button data-k="idea" aria-pressed="false">💡 Идея</button><button data-k="data" aria-pressed="false">📍 Неточность</button><button data-k="other" aria-pressed="false">💬 Другое</button>
+    </div>
+    <textarea id="fb-text" maxlength="1500" placeholder="Например: «Скупщик рыбы не берёт окуня» или «Добавьте таймер AirDrop»"></textarea>
+    <div class="fb-st" id="fb-st" aria-live="polite"></div>
+    <div class="fb-row"><button class="btn ghost" id="fb-cancel">Отмена</button><button class="btn" id="fb-send">Отправить</button></div>
+  </div>
+</div>
 
 <nav role="tablist">
   <button data-v="sell" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Скупщики</button>
@@ -510,9 +544,9 @@ function itemCard(i){
     <div class="t"><span>${esc(i.n)}</span>${badge(i)}</div>
     <div class="where">${i.b.map(buyerLine).join("")}</div>
     <div class="note">${esc(i.note)}</div>${sharedLine(i)}</div>
-    ${i.b[0] !== "none" ? `<div class="vbtns" data-id="${i.id}"><span class="note" style="align-self:center">Проверил в игре:</span>
-      <button data-v="yes" aria-pressed="${v === "yes"}">Берёт</button><button data-v="no" aria-pressed="${v === "no"}">Не берёт</button>
-      </div>` : ""}
+    <div class="vbtns" data-id="${i.id}">${i.b[0] !== "none" ? `<span class="note" style="align-self:center">Проверил в игре:</span>
+      <button data-v="yes" aria-pressed="${v === "yes"}">Берёт</button><button data-v="no" aria-pressed="${v === "no"}">Не берёт</button>` : ""}
+      <button class="fbq" data-fb="${esc(i.n)}">Неточно?</button></div>
   </div>`;
 }
 function renderSell(){
@@ -538,6 +572,8 @@ $("mode-buyers").addEventListener("click", () => { sellMode = "buyers"; $("q").v
 $("results").addEventListener("click", e => {
   const sb_ = e.target.closest("[data-buyer]");
   if (sb_) { e.preventDefault(); show("map"); focusBuyer(sb_.dataset.buyer); return; }
+  const fq = e.target.closest("[data-fb]");
+  if (fq) { openFb("data", `Предмет «${fq.dataset.fb}»: `); return; }
   const b = e.target.closest(".vbtns button[data-v]"); if (!b) return;
   const id = +b.parentElement.dataset.id;
   verify[id] = verify[id] === b.dataset.v ? undefined : b.dataset.v;
@@ -1197,7 +1233,9 @@ $("cat-tools").addEventListener("input", e => {
 $("cat-more").addEventListener("click", () => { catLimit += 40; catRender(); haptic(); });
 catOpen("veh");
 /* ===================== НАВИГАЦИЯ ===================== */
+let curTab = "sell";
 function show(v){
+  curTab = v; $("fb-fab").hidden = v === "map";
   ["sell","map","jobs","cat","log","info"].forEach(k => { $("v-" + k).hidden = k !== v; });
   if (v === "map") setTimeout(initMap, 50);
   document.querySelectorAll("nav button").forEach(b => b.setAttribute("aria-selected", b.dataset.v === v));
@@ -1206,6 +1244,42 @@ function show(v){
 document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => show(b.dataset.v)));
 function haptic(kind){ try { if (tg && tg.HapticFeedback) kind ? tg.HapticFeedback.notificationOccurred(kind) : tg.HapticFeedback.selectionChanged(); } catch (e) {} }
 function notify(t){ if (tg && tg.showAlert && tg.platform !== "unknown") tg.showAlert(t); else $("l-sum").placeholder = t; }
+
+/* ===================== ИДЕИ И БАГИ → разработчику (через бота) ===================== */
+const FB_URL = "https://d9-reminders.9--ot.workers.dev/feedback";
+const TAB_NAMES = {sell:"Скупщики", map:"Карта", jobs:"Работы", cat:"Каталог", log:"Доход", info:"Гайд"};
+let fbKind = "bug";
+function setFbKind(k){ fbKind = k; document.querySelectorAll("#fb-kind button").forEach(b => b.setAttribute("aria-pressed", b.dataset.k === k)); }
+function openFb(kind, text){
+  setFbKind(kind || "bug");
+  if (text !== undefined) $("fb-text").value = text;
+  $("fb-st").textContent = ""; $("fb-st").className = "fb-st";
+  $("fb").hidden = false; haptic();
+  setTimeout(() => { const t = $("fb-text"); t.focus(); t.setSelectionRange(t.value.length, t.value.length); }, 60);
+}
+function closeFb(){ $("fb").hidden = true; }
+$("fb-fab").addEventListener("click", () => openFb());
+$("fb-open").addEventListener("click", () => openFb("idea"));
+$("fb-cancel").addEventListener("click", closeFb);
+$("fb").addEventListener("click", e => { if (e.target.id === "fb") closeFb(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("fb").hidden) closeFb(); });
+$("fb-kind").addEventListener("click", e => { const b = e.target.closest("button[data-k]"); if (b) { setFbKind(b.dataset.k); haptic(); } });
+$("fb-send").addEventListener("click", async () => {
+  const text = $("fb-text").value.trim(), st = $("fb-st"), btn = $("fb-send");
+  if (text.length < 5) { st.className = "fb-st err"; st.textContent = "Напиши чуть подробнее."; return; }
+  btn.disabled = true; st.className = "fb-st"; st.textContent = "Отправляю…";
+  try {
+    const r = await fetch(FB_URL, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({
+      kind: fbKind, text, tab: TAB_NAMES[curTab] || curTab, platform: tg ? tg.platform : "web", initData: tg ? tg.initData : ""})});
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.ok) throw new Error(d.error || "Не получилось отправить");
+    st.className = "fb-st ok"; st.textContent = d.reply ? "Спасибо! Отправлено. Если разработчик ответит — сообщение придёт в бота." : "Спасибо! Отправлено.";
+    $("fb-text").value = ""; haptic("success");
+    setTimeout(closeFb, 1800);
+  } catch (e) {
+    st.className = "fb-st err"; st.textContent = (e.message === "Failed to fetch" ? "Нет связи" : e.message) + ". Можно написать боту командой /idea."; haptic("error");
+  } finally { btn.disabled = false; }
+});
 
 renderSell(); calc(); renderLog(); renderChk(); renderFish();
 load("verify", v => { if (v && typeof v === "object") { verify = v; renderSell(); } });
