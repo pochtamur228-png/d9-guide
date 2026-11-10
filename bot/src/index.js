@@ -254,7 +254,10 @@ export default {
         {command: "app", description: "Открыть справочник"},
         {command: "idea", description: "Идея или баг — написать разработчику"},
       ]});
-      return Response.json({webhook: hook.ok, commands: cmds.ok, description: hook.description});
+      const owner = env.OWNER_ID ? await tg(env, "getChat", {chat_id: env.OWNER_ID}) : null;
+      const me = await tg(env, "getMe", {});
+      return Response.json({webhook: hook.ok, commands: cmds.ok, description: hook.description, bot: me.ok ? "@" + me.result.username : null,
+        owner: owner ? (owner.ok ? {ok: true} : {ok: false, error: owner.description}) : "OWNER_ID не задан"});
     }
     return new Response("D9 reminder bot is running");
   },
