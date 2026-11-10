@@ -378,7 +378,7 @@ input[type=checkbox]{accent-color:var(--rust)}
   </details>
   <div class="card">
     <div class="t">Нашёл ошибку или есть идея?</div>
-    <div class="note">Справочник ещё дорабатывается — пиши, что исправить или добавить. Ответ придёт в бота.</div>
+    <div class="note">Справочник ещё дорабатывается — пиши, что исправить или добавить. Ответ придёт в бота. Можно и лично в Telegram: <a href="https://t.me/MalkovRonan" target="_blank" rel="noopener">@MalkovRonan</a>.</div>
     <button class="btn" id="fb-open" style="margin-top:4px">💬 Написать разработчику</button>
   </div>
   <div class="chips" id="g-toc"></div>
@@ -398,7 +398,7 @@ input[type=checkbox]{accent-color:var(--rust)}
 <div class="fb-back" id="fb" hidden>
   <div class="fb-sheet" role="dialog" aria-modal="true" aria-labelledby="fb-h">
     <h2 id="fb-h">Идея или ошибка?</h2>
-    <p class="note" style="margin:0">Справочник ещё дорабатывается. Напиши, что сломалось, где неточность или что добавить. Сообщение придёт разработчику, ответ — в бота.</p>
+    <p class="note" style="margin:0">Справочник ещё дорабатывается. Напиши, что сломалось, где неточность или что добавить. Сообщение придёт разработчику, ответ — в бота. Или напиши напрямую в Telegram: <a href="https://t.me/MalkovRonan" target="_blank" rel="noopener">@MalkovRonan</a>.</p>
     <div class="vbtns" id="fb-kind">
       <button data-k="bug" aria-pressed="true">🐞 Баг</button><button data-k="idea" aria-pressed="false">💡 Идея</button><button data-k="data" aria-pressed="false">📍 Неточность</button><button data-k="other" aria-pressed="false">💬 Другое</button>
     </div>
@@ -1277,7 +1277,7 @@ $("fb-send").addEventListener("click", async () => {
     $("fb-text").value = ""; haptic("success");
     setTimeout(closeFb, 1800);
   } catch (e) {
-    st.className = "fb-st err"; st.textContent = (e.message === "Failed to fetch" ? "Нет связи" : e.message) + ". Можно написать боту командой /idea."; haptic("error");
+    st.className = "fb-st err"; st.textContent = (e.message === "Failed to fetch" ? "Нет связи" : e.message) + ". Можно написать боту командой /idea или в Telegram @MalkovRonan."; haptic("error");
   } finally { btn.disabled = false; }
 });
 

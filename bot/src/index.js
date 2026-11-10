@@ -119,7 +119,7 @@ async function onUpdate(env, upd) {
     const u = await getUser(env, id);
     if (text.startsWith("/start")) {
       await tg(env, "sendMessage", {chat_id: id, parse_mode: "HTML", text:
-        "Привет! Я помощник по DISTRICT 9 RP.\n\nСправочник — кнопка «Справочник» внизу или /app.\nНапоминания о подарке, турнирах и налоге — /remind.\nНашёл ошибку или есть идея — /idea."});
+        "Привет! Я помощник по DISTRICT 9 RP.\n\nСправочник — кнопка «Справочник» внизу или /app.\nНапоминания о подарке, турнирах и налоге — /remind.\nНашёл ошибку или есть идея — /idea или лично @MalkovRonan."});
     }
     // владелец отвечает (Reply) на пересланный отзыв → ответ уходит игроку
     if (String(id) === String(env.OWNER_ID) && upd.message.reply_to_message) {
