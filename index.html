@@ -160,7 +160,22 @@ nav button[aria-selected="true"]::before{content:"";position:absolute;top:0;left
 .mapbox{border:1px solid var(--line);background:#070807}
 #fb-fab{position:fixed;top:10px;right:12px;z-index:11;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);
   background:rgba(23,28,23,.92);color:var(--fg);font-size:18px;cursor:pointer;box-shadow:0 6px 16px -8px rgba(0,0,0,.9)}
-#fb-fab:active{transform:scale(.94)}
+#fb-fab:active,#sr-fab:active{transform:scale(.94)}
+#sr-fab{position:fixed;top:10px;right:58px;z-index:11;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);
+  background:rgba(23,28,23,.92);color:var(--fg);cursor:pointer;display:grid;place-items:center;box-shadow:0 6px 16px -8px rgba(0,0,0,.9)}
+#sr-fab svg{width:19px;height:19px}
+.sr-sheet{height:88vh}
+.sr-sheet input{width:100%;border-radius:10px;padding:12px;font:inherit;font-size:16px;background:var(--bg3);border:1px solid var(--line);color:var(--fg)}
+.sr-sheet input:focus{outline:1px solid var(--rust)}
+#sr-res{display:flex;flex-direction:column;gap:4px;overflow:auto}
+.sr-g{font-family:var(--display);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--rust-hi);margin:10px 0 2px}
+.sr-i{display:flex;flex-direction:column;gap:2px;text-align:left;border:1px solid var(--line);background:var(--bg3);color:var(--fg);border-radius:10px;padding:9px 11px;font:inherit;cursor:pointer}
+.sr-i small{color:var(--muted);font-size:12px;line-height:1.35}
+.sr-i mark{background:rgba(208,102,31,.35);color:inherit;border-radius:3px;padding:0 1px}
+nav button .dot{position:absolute;top:6px;right:calc(50% - 16px);width:8px;height:8px;border-radius:50%;background:var(--blood);box-shadow:0 0 6px var(--blood)}
+#offline{position:sticky;top:0;z-index:12;background:#3a2a0e;color:var(--hazard);font-size:13px;text-align:center;padding:6px 12px;border-bottom:1px solid #5a4214}
+.news li{margin:2px 0}
+.news ul{margin:4px 0 0;padding-left:18px}
 .fb-back{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
 .fb-sheet{width:100%;max-width:560px;background:#141814;border:1px solid var(--line);border-bottom:0;border-radius:16px 16px 0 0;
   padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;max-height:92vh;overflow:auto}
@@ -221,6 +236,7 @@ input[type=checkbox]{accent-color:var(--rust)}
 </style>
 </head>
 <body>
+<div id="offline" hidden>Нет интернета — показываю сохранённую версию. Карта и общая база не обновятся.</div>
 
 <!-- ======================= СКУПЩИКИ ======================= -->
 <section id="v-sell" class="wrap">
@@ -371,6 +387,10 @@ input[type=checkbox]{accent-color:var(--rust)}
 <!-- ======================= ГАЙД ======================= -->
 <section id="v-info" class="wrap" hidden>
   <div><h1>Гайд новичка</h1><p class="sub">DISTRICT 9 RP — сервер GTA 5 со своим лаунчером. Город за стеной и Пустошь с заражёнными. Картинки предметов — с вики сервера.</p></div>
+  <details class="card news" id="news-card">
+    <summary>Что нового <span class="note" id="news-date"></span></summary>
+    <div id="news" style="margin-top:6px"></div>
+  </details>
   <details class="card" id="chk-card" open>
     <summary>Перед вылазкой в Пустошь <span class="note" id="chk-count"></span></summary>
     <div id="chk" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
@@ -394,6 +414,13 @@ input[type=checkbox]{accent-color:var(--rust)}
   <p class="note">Неофициальный справочник игрока. Данные и изображения предметов — d9-rp.com, ноябрь 2026. Пометка <span class="conf guess">по логике</span> — вывод из названий и описаний, в вики прямо не написано.</p>
 </section>
 
+<button id="sr-fab" aria-label="Поиск по всему справочнику" title="Поиск"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+<div class="fb-back" id="sr" hidden>
+  <div class="fb-sheet sr-sheet" role="dialog" aria-modal="true" aria-label="Поиск">
+    <div class="fb-row"><input id="sr-q" type="search" placeholder="Предмет, место, машина, раздел гайда…" autocomplete="off"><button class="btn ghost" id="sr-close" style="flex:0 0 auto;width:auto;padding:0 14px">✕</button></div>
+    <div id="sr-res"></div>
+  </div>
+</div>
 <button id="fb-fab" aria-label="Ошибка или идея по справочнику — написать разработчику" title="Ошибка или идея по справочнику">💬</button>
 <div class="fb-back" id="fb" hidden>
   <div class="fb-sheet" role="dialog" aria-modal="true" aria-labelledby="fb-h">
@@ -588,8 +615,8 @@ $("results").addEventListener("click", e => {
 });
 
 /* ===================== РАБОТЫ ===================== */
-$("jobs").innerHTML = JOBS.map(j => `
-  <details class="card"><summary>${esc(j.n)}</summary>
+$("jobs").innerHTML = JOBS.map((j, i) => `
+  <details class="card" id="job-${i}"><summary>${esc(j.n)}</summary>
     <dl><dt>Нужно</dt><dd>${esc(j.gear)}</dd><dt>Где</dt><dd>${esc(j.where)}</dd><dt>Сдавать</dt><dd>${esc(j.sell)}</dd><dt>Оплата</dt><dd>${esc(j.pay)}</dd></dl>
   </details>`).join("");
 
@@ -1236,7 +1263,8 @@ catOpen("veh");
 /* ===================== НАВИГАЦИЯ ===================== */
 let curTab = "sell";
 function show(v){
-  curTab = v; $("fb-fab").hidden = v === "map";
+  curTab = v; $("fb-fab").hidden = $("sr-fab").hidden = v === "map";
+  if (v === "info") markNewsSeen();
   ["sell","map","jobs","cat","log","info"].forEach(k => { $("v-" + k).hidden = k !== v; });
   if (v === "map") setTimeout(initMap, 50);
   document.querySelectorAll("nav button").forEach(b => b.setAttribute("aria-selected", b.dataset.v === v));
@@ -1245,6 +1273,93 @@ function show(v){
 document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => show(b.dataset.v)));
 function haptic(kind){ try { if (tg && tg.HapticFeedback) kind ? tg.HapticFeedback.notificationOccurred(kind) : tg.HapticFeedback.selectionChanged(); } catch (e) {} }
 function notify(t){ if (tg && tg.showAlert && tg.platform !== "unknown") tg.showAlert(t); else $("l-sum").placeholder = t; }
+
+/* ===================== ЕДИНЫЙ ПОИСК ===================== */
+function focusPoint(x, y, name, desc){
+  show("map");
+  setTimeout(() => {
+    initMap(); if (!map) return;
+    if (spotMarker) { spotMarker.remove(); spotMarker = null; }
+    spotMarker = L.marker(toLL(x, y), {icon:dot("#ffffff", 22), zIndexOffset:1000}).addTo(map).bindPopup(`<b>${esc(name)}</b>${desc ? "<br>" + esc(desc) : ""}`);
+    map.setView(toLL(x, y), 5); spotMarker.openPopup();
+    $("m-hint").textContent = name;
+  }, 80);
+}
+const strip = h => h.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&[a-z]+;/g, " ").replace(/\s+/g, " ").trim();
+let SIDX = null;
+function searchIndex(){
+  if (SIDX) return SIDX;
+  const a = [];
+  ITEMS.forEach(i => a.push({g:"Предметы", n:i.n, sub:i.b.filter(k => k !== "none").map(k => BUYERS[k].n).join(", ") || "не скупают", k:i.cat,
+    go:() => { show("sell"); $("q").value = i.n; renderSell(); }}));
+  GUIDE.forEach(g => { const txt = strip(g.h); a.push({g:"Гайд", n:g.t.replace(/^\d+\.\s*/, ""), txt, k:txt,
+    go:() => { show("info"); const d = $("g-" + g.id); d.open = true; setTimeout(() => d.scrollIntoView({block:"start"}), 50); }}); });
+  JOBS.forEach((j, i) => a.push({g:"Работы", n:j.n, sub:j.where, k:[j.gear, j.where, j.sell].join(" "),
+    go:() => { show("jobs"); const d = $("job-" + i); d.open = true; setTimeout(() => d.scrollIntoView({block:"start"}), 50); }}));
+  SZONES.forEach(([n, x, y, cat, d]) => a.push({g:"На карте", n, sub:d || "зелёная зона", k:d || "", go:() => focusPoint(x, y, n, d)}));
+  BASES.forEach(([f, x, y]) => a.push({g:"На карте", n:FACTIONS[f], sub:"база фракции", k:"база фракция", go:() => focusPoint(x, y, FACTIONS[f], "База фракции")}));
+  SHOPS.forEach(([t, n, x, y]) => a.push({g:"На карте", n, sub:SHOP_INFO[t][1], k:SHOP_INFO[t][1], go:() => focusPoint(x, y, n, SHOP_INFO[t][1])}));
+  VEH.forEach(v => a.push({g:"Транспорт", n:v[1], sub:`${money(v[2])} · багажник ${v[3]} кг${v[4] === "O" ? " · можно в Пустошь" : ""}`, k:"машина транспорт",
+    go:() => { show("cat"); catState.q = v[1]; catState.vehOnly = false; catOpen("veh"); }}));
+  LORE.forEach(f => a.push({g:"Группировки", n:f.n, sub:f.d, k:f.en + " " + f.d, go:() => { show("cat"); catOpen("lore"); }}));
+  return (SIDX = a.map(r => ({...r, nn:norm(r.n), kk:norm((r.k || "") + " " + (r.sub || ""))})));
+}
+const hl = (t, q) => { const i = norm(t).indexOf(q); return i < 0 ? esc(t) : esc(t.slice(0, i)) + "<mark>" + esc(t.slice(i, i + q.length)) + "</mark>" + esc(t.slice(i + q.length)); };
+function snippet(t, q){ const i = norm(t).indexOf(q); if (i < 0) return t.slice(0, 110); const a = Math.max(0, i - 45); return (a ? "…" : "") + t.slice(a, i + q.length + 70) + "…"; }
+let srHits = [];
+function runSearch(){
+  const q = norm($("sr-q").value);
+  if (q.length < 2) { $("sr-res").innerHTML = `<p class="note">Ищет сразу по предметам и скупщикам, гайду, работам, точкам на карте, транспорту и группировкам.</p>`; srHits = []; return; }
+  const words = q.split(/\s+/);
+  const scored = searchIndex().map(r => {
+    if (!words.every(w => r.nn.includes(w) || r.kk.includes(w))) return null;
+    return {r, s:(r.nn.startsWith(q) ? 0 : r.nn.includes(q) ? 1 : 2)};
+  }).filter(Boolean).sort((a, b) => a.s - b.s);
+  const groups = {};
+  scored.forEach(({r}) => { (groups[r.g] = groups[r.g] || []).length < 8 && groups[r.g].push(r); });
+  srHits = [];
+  const html = Object.entries(groups).map(([g, rows]) => `<div class="sr-g">${g}</div>` + rows.map(r => {
+    srHits.push(r);
+    const sub = r.txt ? snippet(r.txt, words[0]) : r.sub || "";
+    return `<button class="sr-i" data-i="${srHits.length - 1}"><span>${hl(r.n, words[0])}</span>${sub ? `<small>${hl(sub, words[0])}</small>` : ""}</button>`;
+  }).join("")).join("");
+  $("sr-res").innerHTML = html || `<div class="empty">Ничего не нашлось.<br>Попробуй другое слово. Если чего-то не хватает — напиши через 💬.</div>`;
+}
+function openSearch(){ $("sr").hidden = false; runSearch(); setTimeout(() => $("sr-q").focus(), 60); haptic(); }
+function closeSearch(){ $("sr").hidden = true; }
+$("sr-fab").addEventListener("click", openSearch);
+$("sr-close").addEventListener("click", closeSearch);
+$("sr").addEventListener("click", e => { if (e.target.id === "sr") closeSearch(); });
+$("sr-q").addEventListener("input", runSearch);
+$("sr-res").addEventListener("click", e => { const b = e.target.closest(".sr-i"); if (!b) return; const r = srHits[+b.dataset.i]; closeSearch(); r.go(); haptic(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("sr").hidden) closeSearch(); });
+
+/* ===================== ЧТО НОВОГО ===================== */
+const NEWS = [
+  {v:"2026-11-10", t:"10 ноября", items:["🔍 Поиск по всему справочнику — кнопка вверху справа","💬 Форма «ошибка или идея» — пиши, что исправить в справочнике и боте","📦 В боте: напоминание об AirDrop за 15 минут (/remind)","📶 Справочник открывается и без интернета — с последними сохранёнными данными"]},
+  {v:"2026-11-09", t:"9 ноября", items:["🗺 Полная карта: все скупщики, больницы, госструктуры, работы, базы фракций, клады, радиация и территории","📍 Кнопки «на карте» у скупщиков ведут к точным местам"]},
+];
+let newsSeen = "";
+function renderNews(){
+  $("news-date").textContent = "· " + NEWS[0].t;
+  $("news").innerHTML = NEWS.map((n, i) => `<div${i ? ' class="note"' : ""}><b>${n.t}</b><ul>${n.items.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`).join("");
+  const btn = document.querySelector('nav button[data-v="info"]');
+  const fresh = newsSeen !== NEWS[0].v;
+  $("news-card").open = fresh;
+  let d = btn.querySelector(".dot");
+  if (fresh && !d) btn.insertAdjacentHTML("beforeend", '<span class="dot"></span>');
+  if (!fresh && d) d.remove();
+}
+function markNewsSeen(){ if (newsSeen === NEWS[0].v) return; newsSeen = NEWS[0].v; save("newsSeen", newsSeen); const d = document.querySelector('nav button[data-v="info"] .dot'); if (d) d.remove(); }
+
+/* ===================== БЕЗ ИНТЕРНЕТА ===================== */
+function syncOnline(){ $("offline").hidden = navigator.onLine !== false; }
+window.addEventListener("online", syncOnline); window.addEventListener("offline", syncOnline); syncOnline();
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+/* отметка об открытии — для статистики разработчика (только из Telegram, без личных данных кроме id) */
+if (tg && tg.initData) fetch("https://d9-reminders.9--ot.workers.dev/hello", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({initData:tg.initData})}).catch(() => {});
 
 /* ===================== ИДЕИ И БАГИ → разработчику (через бота) ===================== */
 const FB_URL = "https://d9-reminders.9--ot.workers.dev/feedback";
@@ -1287,6 +1402,8 @@ load("verify", v => { if (v && typeof v === "object") { verify = v; renderSell()
 load("pins", v => { if (Array.isArray(v)) { pins = v; drawPins(); } });
 load("check", v => { if (v && typeof v === "object") checked = v; renderChk(); });
 load("fish", v => { if (Array.isArray(v)) fishes = v; renderFish(); });
+renderNews();
+load("newsSeen", v => { if (typeof v === "string") { newsSeen = v; renderNews(); } });
 load("voted", v => { if (v && typeof v === "object") voted = v; });
 loadShared();
 load("log", v => { if (Array.isArray(v)) { log = v; renderLog(); } });
