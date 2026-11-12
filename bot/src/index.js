@@ -181,6 +181,11 @@ async function onUpdate(env, upd) {
       const kind = await env.SUBS.get("await:" + id);
       if (kind) { await env.SUBS.delete("await:" + id); return sendIdea(env, id, upd.message.from, kind, text); }
     }
+    if (text.startsWith("/online")) {
+      const o = await serverOnline();
+      await tg(env, "sendMessage", {chat_id: id, parse_mode: "HTML", text: o.ok ? `🟢 На сервере DISTRICT 9 сейчас <b>${o.clients}</b> из ${o.maxClients} игроков.` : "Не удалось узнать онлайн — сайт сервера не отвечает."});
+      return;
+    }
     if (text.startsWith("/app")) {
       await tg(env, "sendMessage", {chat_id: id, text: "Справочник: скупщики, карта, гайд, доход.", reply_markup: openApp});
     }
@@ -302,6 +307,19 @@ async function helloHttp(req, env) {
   return new Response(null, {status: 204, headers: CORS});
 }
 
+// онлайн сервера с d9-rp.com (кэш 60 с)
+async function serverOnline() {
+  const cache = caches.default, key = new Request("https://d9-cache.local/online");
+  const hit = await cache.match(key);
+  if (hit) return hit.json();
+  try {
+    const d = await (await fetch("https://d9-rp.com/api/server-status", {headers: {"User-Agent": "D9-guide-bot"}})).json();
+    const body = {ok: !!d.ok, clients: d.clients, maxClients: d.maxClients, at: Date.now()};
+    await cache.put(key, new Response(JSON.stringify(body), {headers: {"Cache-Control": "public, max-age=60"}}));
+    return body;
+  } catch (e) { return {ok: false}; }
+}
+
 async function eachUser(env, fn) {
   let cursor;
   do {
@@ -351,6 +369,9 @@ export default {
       try { await onUpdate(env, await req.json()); } catch (e) { console.log("update error", e); }
       return new Response("ok");
     }
+    if (url.pathname === "/online") {
+      return new Response(JSON.stringify(await serverOnline()), {headers: {...CORS, "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=60"}});
+    }
     if (url.pathname === "/hello") {
       if (req.method === "OPTIONS") return new Response(null, {headers: CORS});
       if (req.method === "POST") return helloHttp(req, env);
@@ -381,10 +402,12 @@ export default {
       const cmds = await tg(env, "setMyCommands", {commands: [
         {command: "remind", description: "Напоминания: подарок, турниры, AirDrop, налог"},
         {command: "app", description: "Открыть справочник"},
+        {command: "online", description: "Сколько игроков на сервере сейчас"},
         {command: "idea", description: "Ошибка или идея по справочнику и боту"},
       ]});
       if (env.OWNER_ID) await tg(env, "setMyCommands", {scope: {type: "chat", chat_id: Number(env.OWNER_ID)}, commands: [
         {command: "remind", description: "Напоминания"}, {command: "app", description: "Открыть справочник"},
+        {command: "online", description: "Онлайн сервера"},
         {command: "idea", description: "Ошибка или идея по справочнику и боту"},
         {command: "stats", description: "Статистика (только для тебя)"}, {command: "news", description: "Рассылка всем (только для тебя)"}]});
       const owner = env.OWNER_ID ? await tg(env, "getChat", {chat_id: env.OWNER_ID}) : null;
